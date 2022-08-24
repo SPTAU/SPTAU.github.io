@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Monda:300,300italic,400,400italic,700,700italic|Lobster Two:300,300italic,400,400italic,700,700italic|Roboto Slab:300,300italic,400,400italic,700,700italic|Microsoft YaHei:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"sptau.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-1}},"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="PointNet++: Deep Hierarchical Feature Learning on Point Sets in a Metric Space">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PointNet++ 论文总结">
+<meta property="og:url" content="http://sptau.github.io/2022/08/24/pointnet-plus-plus-lun-wen-zong-jie/index.html">
+<meta property="og:site_name" content="巽离阁">
+<meta property="og:description" content="PointNet++: Deep Hierarchical Feature Learning on Point Sets in a Metric Space">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://s2.loli.net/2022/08/19/xhqnjzpP1SsQKrR.png">
+<meta property="article:published_time" content="2022-08-24T01:46:55.000Z">
+<meta property="article:modified_time" content="2022-08-24T09:03:29.487Z">
+<meta property="article:author" content="SPTAU">
+<meta property="article:tag" content="PointNet++">
+<meta property="article:tag" content="点云">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://s2.loli.net/2022/08/19/xhqnjzpP1SsQKrR.png">
+
+<link rel="canonical" href="http://sptau.github.io/2022/08/24/pointnet-plus-plus-lun-wen-zong-jie/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>PointNet++ 论文总结 | 巽离阁</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="巽离阁" type="application/atom+xml">
+<style>.darkmode--activated{--body-bg-color:#282828;--content-bg-color:#333;--card-bg-color:#555;--text-color:#ccc;--blockquote-color:#bbb;--link-color:#ccc;--link-hover-color:#eee;--brand-color:#ddd;--brand-hover-color:#ddd;--table-row-odd-bg-color:#282828;--table-row-hover-bg-color:#363636;--menu-item-bg-color:#555;--btn-default-bg:#222;--btn-default-color:#ccc;--btn-default-border-color:#555;--btn-default-hover-bg:#666;--btn-default-hover-color:#ccc;--btn-default-hover-border-color:#666;--highlight-background:#282b2e;--highlight-foreground:#a9b7c6;--highlight-gutter-background:#34393d;--highlight-gutter-foreground:#9ca9b6}.darkmode--activated img{opacity:.75}.darkmode--activated img:hover{opacity:.9}.darkmode--activated code{color:#69dbdc;background:0 0}button.darkmode-toggle{z-index:9999}.darkmode-ignore,img{display:flex!important}.beian img{display:inline-block!important}</style></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">巽离阁</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">非生来富贵 是天道酬勤</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://sptau.github.io/2022/08/24/pointnet-plus-plus-lun-wen-zong-jie/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="SPTAU">
+      <meta itemprop="description" content="江湖行走 初心依旧 来年还乡 一梦千秋">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="巽离阁">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          PointNet++ 论文总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-08-24 09:46:55 / 修改时间：17:03:29" itemprop="dateCreated datePublished" datetime="2022-08-24T09:46:55+08:00">2022-08-24</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/" itemprop="url" rel="index"><span itemprop="name">学习</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <div class="post-description">PointNet++: Deep Hierarchical Feature Learning on Point Sets in a Metric Space</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="第一遍阅读论文">第一遍阅读论文</h2>
+<h3 id="感受">感受</h3>
+<ol type="1">
+<li><a
+target="_blank" rel="noopener" href="https://proceedings.neurips.cc/paper/2017/hash/d8bf84be3800d12f74d8b05e9b89836f-Abstract.html">PointNet++</a>
+的网络结构和 FPN
+结构很像，都使用“由上至下——下采样”、“横向连接——跨级链接”及“由下至上——上采样”的结构，从而对多尺度特征图进行融合，将高层的语义信息与低层的几何细节结合。</li>
+<li>相比起 <a
+target="_blank" rel="noopener" href="https://openaccess.thecvf.com/content_cvpr_2017/html/Qi_PointNet_Deep_Learning_CVPR_2017_paper.html">PointNet</a>
+论文，这篇论文更难懂一点。或许是因为 PointNet 结构很简单。</li>
+</ol>
+<h3 id="疑惑">疑惑</h3>
+<ol type="1">
+<li><p>PointNet++ 对点云进行多次降采样后调用 PointNet</p>
+<p>那么调用的是 PointNet 的哪一个模型？是分类模型还是语义分割模型？
+PointNet 的输出结果是怎样的？</p></li>
+<li><p>采样层使用最远点采样法进行分组</p>
+<p>计算距离的坐标基点是哪里？是原点吗？计算的是什么距离？是欧氏距离吗？</p></li>
+</ol>
+<h2 id="第二遍阅读论文">第二遍阅读论文</h2>
+<h3 id="abstract">Abstract</h3>
+<ol type="1">
+<li><p>PointNet 的缺点</p>
+<p>PointNet
+不能很好地捕捉到局部结构信息，其识别细腻度模式的能力较弱，且难以应用在复杂场景</p></li>
+<li><p>PointNet++ 的优点</p>
+<p>PointNet++ 引入分层神经网络，在嵌套分区上递归应用 PointNet
+；通过距离学习不同尺度的局部信息；加入集合学习层，以自适应地结合来自多个尺度的特征</p></li>
+</ol>
+<h3 id="introduction">Introduction</h3>
+<ol type="1">
+<li><p>PointNet++ 的特征提取过程</p>
+<ol type="1">
+<li>PointNet++ 通过底层空间的距离度量将点集划分为若干重叠的局部单元</li>
+<li>PointNet++ 从局部单元中提取捕捉精细几何结构的局部特征；</li>
+<li>PointNet++
+将所有局部特征被进一步分组为更大的单元并被处理以产生更高层次的特征</li>
+<li>PointNet++ 重复步骤 3 ，直到我们得到整个点集的特征。</li>
+</ol></li>
+<li><p>PointNet++ 面临的问题</p>
+<ol type="1">
+<li><p>如何产生局部单元</p>
+<p>通过最远点采样法选取分区质心</p></li>
+<li><p>如何通过局部特征学习器抽象出点集或局部特征</p></li>
+<li><p>如何在密度不均匀的点集进行自适应分组</p>
+<ul>
+<li>在图像中，较小的卷积核可以提升 CNN 提取特征的能力</li>
+<li>在点集中，在较小的邻域不足以让网络稳健地提取特征</li>
+</ul></li>
+</ol></li>
+</ol>
+<h3 id="problem-statement">Problem Statement</h3>
+<p>设计一个输入为点集，输出为分级的语义信息的函数</p>
+<h3 id="method">Method</h3>
+<figure>
+<img src="https://s2.loli.net/2022/08/19/xhqnjzpP1SsQKrR.png"
+alt="PointNet++ 网络结构图" />
+<figcaption aria-hidden="true">PointNet++ 网络结构图</figcaption>
+</figure>
+<ol type="1">
+<li><p>回顾 PointNet</p>
+<p><span class="math display">\[f(x_1,...,x_n) ≈
+\gamma(\max_{i=1,...,n}\{h(x_i)\})\tag{1}\]</span></p>
+<p>PointNet
+简单高效，具有很强的鲁棒性，但是缺乏在不同尺度上捕捉局部结构的能力</p></li>
+<li><p>分层特征学习</p>
+<p>PointNet++ 的分层结构由多层 set abstraction 层级构成</p>
+<p>每层 set abstraction 层级由采样层、分组层和 PointNet 层构成</p>
+<ul>
+<li><p>采样层从点集中选择一些点作为中心点</p></li>
+<li><p>分组层寻找中心点周围的相邻点来构建局部单元</p></li>
+<li><p>PointNet 层使用 mini-PointNet 从局部单元中提取特征</p></li>
+</ul>
+<p>set abstraction 层级的输入是 <span class="math inline">\(N \times (d
++ C)\)</span> 的矩阵，输出是 <span class="math inline">\(N&#39; \times
+(d&#39; + C&#39;)\)</span> 的矩阵</p>
+<blockquote>
+<p>输入矩阵来自 $N $ 个具有 $ d $ 维坐标和 $ C$ 维特征的点 输出矩阵由
+$N' $ 个具有 $ d' $ 维坐标和 $ C'$ 维特征的点组成</p>
+</blockquote>
+<ol type="1">
+<li><p>采样层</p>
+<p>该层的输入是点集 <span class="math inline">\(\{x_1, x_2, ..., x_n
+\}\)</span> ，输出是子点集 <span class="math inline">\(\{x_{i_1},
+x_{i_2}, ..., x_{i_n} \}\)</span></p>
+<p>采样层使用最远采样法，从点集中选择几何距离较远的点作为子点集，子点集中的点即为中心点</p>
+<p>常用的几何距离有欧氏距离和测地距离</p>
+<p>选择初始点的方法有随机选取和选取距离点云重心的最远点</p>
+<p>最远采样法相比于随机采样，能够更好覆盖整个点集；相比于 CNN
+，最远采样法以一种依赖数据的方式生成感受野</p></li>
+<li><p>分组层</p>
+<p>该层的输入是整个点集构成的 <span class="math inline">\(N \times (d +
+C)\)</span> 矩阵和采样层输出的子点集的坐标构成的 <span
+class="math inline">\(N&#39; \times d\)</span> 矩阵，输出是 <span
+class="math inline">\(N&#39; \times K \times (d + C)\)</span> 的矩阵</p>
+<blockquote>
+<p>K 是中心点附近的点数，可以自适应调整</p>
+</blockquote>
+<p>分组层使用球状半径查询，从点集中寻找中心点半径范围内的 K 个点</p>
+<p>球状半径查询相比于 kNN 搜索，能够保证固定的区域尺度</p></li>
+<li><p>PointNet 层</p>
+<p>该层的输入是 <span class="math inline">\(N&#39; \times K \times (d +
+C)\)</span> 矩阵，输出是 <span class="math inline">\(N&#39; \times (d +
+C&#39;)\)</span> 的矩阵</p></li>
+</ol></li>
+<li><p>非均匀采样密度下的特征学习</p>
+<ol type="1">
+<li><p>多尺度分组</p>
+<p>对每个尺度的分组都送入 PointNet
+层进行特征提取，然后将特征连接起来作为中心点的特征</p>
+<p>计算成本很高</p></li>
+<li><p>多分辨率分组</p>
+<p>将大尺度的特征和送入 PointNet 层提取的小尺度特征进行拼接</p>
+<p>在密度较低的区域，自适应提升大尺度特征的权重</p>
+<p>在密度较高的区域，自适应提升送入 PointNet
+层提取的小尺度特征的权重</p></li>
+<li><p>随机丢弃输入数据</p>
+<p>在将数据输入进 PointNet 层之前进行 95% 的重新采样</p></li>
+</ol></li>
+<li><p>分割任务中点特征的传播</p>
+<p>在语义分割任务中，希望得到所有原始点的点特征</p>
+<ol type="1">
+<li><p>将所有的点都作为中心点进行采样分组</p>
+<p>计算成本很高</p></li>
+<li><p>将特征用内插特征值从子采样点传播到原始点</p>
+<p>内插特征值使用基于 k 近邻的反距离加权平均</p>
+<p>将内插的特征值与跳过的链接点特征相连接</p>
+<p><span class="math display">\[{f^{(i)}} = {\frac {\sum_{i=1}^{k}
+{w_{i}(x)} {f}_{i}^{(j)}} {\sum_{i=1}^{k}{w_{i}(x)}}} \quad where \quad
+{w}_{i}(x) = {\frac {1} {d(x, x_i)^p}}, j = 1, ..., C \qquad
+\tag{2}\]</span></p></li>
+</ol></li>
+</ol>
+<h3 id="experiments">Experiments</h3>
+<ol type="1">
+<li><p>数据集</p>
+<ol type="1">
+<li><p>MNIST</p>
+<p>70k 张二维图片，按 6:1 比例划分训练集和测试集</p></li>
+<li><p>ModelNet40</p>
+<p>40 类 12311 个 CAD 模型，按 4:1 比例划分训练集和测试集</p></li>
+<li><p>SHREC15</p>
+<p>50 类 1200 个 CAD 模型，每个类别包括 24
+种形状，使用五折交叉验证</p></li>
+<li><p>ScanNet</p>
+<p>1513 个室内扫描重建场景，按 4:1 比例划分训练集和测试集</p></li>
+</ol></li>
+<li><p>欧氏几何空间中的点集分类</p>
+<p>在 MNIST 和 ModelNet40 数据集中的表现明显优于 PointNet</p>
+<p>在模拟的不均匀数据集中，保持很好的性能</p></li>
+<li><p>场景语义分割</p>
+<p>对抽样密度变化具有稳健性</p></li>
+<li><p>非欧几何空间中的点集分类</p>
+<p>对每个模型构建由成对的测地线距离诱导的度量空间</p>
+<p>提取 WKS 、 HKS
+和多尺度高斯曲率等特征作为特征，而不是以三维坐标作为特征</p>
+<p>因为以三维坐标作为特征不能揭示内在结构，而且受姿势变化的影响很大</p></li>
+<li><p>特征可视化</p>
+<p>通过特征可视化可以看出 PointNet++ 学习到了物体的基本结构</p></li>
+</ol>
+<h3 id="conclusion">conclusion</h3>
+<p>改进方向：</p>
+<p>如何通过在每个局部区域分享更多的计算来加快网络的推理速度</p>
+<h2 id="复现结果">复现结果</h2>
+<p>代码源自 yanx27 - <a
+target="_blank" rel="noopener" href="https://github.com/yanx27/Pointnet_Pointnet2_pytorch">PyTorch
+Implementation of PointNet and PointNet++</a></p>
+<p>输入如下指令开始训练 PointNet++ 分类模型</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python train_classification.py --model pointnet2_cls_ssg --log_dir pointnet2_cls_ssg</span><br></pre></td></tr></table></figure>
+<p>训练最终结果</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Epoch <span class="number">200</span> (<span class="number">200</span>/<span class="number">200</span>):</span><br><span class="line">Train Instance Accuracy: <span class="number">0.976626</span></span><br><span class="line">Test Instance Accuracy: <span class="number">0.920146</span>, Class Accuracy: <span class="number">0.890121</span></span><br><span class="line">Best Instance Accuracy: <span class="number">0.926133</span>, Class Accuracy: <span class="number">0.898150</span></span><br><span class="line">End of training...</span><br></pre></td></tr></table></figure>
+<p>输入如下指令开始测试 PointNet++ 分类模型</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python test_classification.py --log_dir pointnet2_cls_ssg</span><br></pre></td></tr></table></figure>
+<p>测试最终结果</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Test Instance Accuracy: <span class="number">0.927751</span>, Class Accuracy: <span class="number">0.896012</span></span><br></pre></td></tr></table></figure>
+<h2 id="参考文章">参考文章</h2>
+<p>刘昕宸 - <a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/266324173">搞懂
+PointNet++ ，这篇文章就够了！</a></p>
+<p>Guoguang Du - <a
+target="_blank" rel="noopener" href="https://blog.csdn.net/dsoftware/article/details/107184116">最远点采样(Farthest
+Point Sampling)介绍</a></p>
+<h2 id="论文总结">论文总结</h2>
+<h3 id="pointnet-针对-pointnet-提出的改进">PointNet++ 针对 PointNet
+提出的改进</h3>
+<ol type="1">
+<li><p>PointNet
+只是提取点云中各个点的空间特征，然后聚合成全局信息。这样不能很好地提取局部结构信息</p>
+<p>PointNet++
+通过采样和分组将点集划分为不同的重叠区域，即整合局部邻域</p></li>
+<li><p>PointNet
+在聚合成全局信息时只使用了最大值池化。这样会损失大量信息</p>
+<p>PointNet++
+采用多层神经网络，对点集中的分组不断进行下采样，提取不同尺度下的
+local-global feature</p></li>
+<li><p>PointNet
+中的语义分割模型提取的中间特征是全局特征和局部特征拼接而成，特征的差异度不够</p>
+<p>PointNet++
+先进行下采样再进行上采样，使用跨级链接和内插特征值拼接对应层的
+local-global feature</p></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    
+<div>
+  
+    <div style="text-align:center;color:#bfbfbf;font-size:16px;">
+      <span>-------- 本文结束 </span>
+      <i class="fa fa-paw"></i>
+      <span> 感谢阅读 --------</span>
+    </div>
+  
+</div>
+
+        
+
+<div>
+
+<!-- JS库 clipboard 拷贝内容到粘贴板-->
+<script src="https://cdn.bootcss.com/clipboard.js/2.0.1/clipboard.min.js"></script>
+
+<!-- JS库 sweetalert 显示提示信息-->
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+<ul class="post-copyright">
+
+  <!-- 本文标题 -->
+  <li>
+    <strong>post.copyright.title： </strong>
+    PointNet++ 论文总结
+  </li>
+
+  <!-- 本文作者 -->
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>SPTAU
+  </li>
+
+  <!-- 创建时间 -->
+  <li>
+    <strong>创建时间： </strong>
+    2022年08月24日 - 09时08分
+  </li>
+
+  <!-- 修改时间 -->
+  <li>
+    <strong>修改时间： </strong>
+    2022年08月24日 - 17时08分
+  </li>
+
+  <!-- 引用链接 -->
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://sptau.github.io/2022/08/24/pointnet-plus-plus-lun-wen-zong-jie/" title="PointNet++ 论文总结">http://sptau.github.io/2022/08/24/pointnet-plus-plus-lun-wen-zong-jie/</a>
+  </li>
+
+  <!-- 版权声明 -->
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/PointNet/" rel="tag"><i class="fa fa-tag"></i> PointNet++</a>
+              <a href="/tags/%E7%82%B9%E4%BA%91/" rel="tag"><i class="fa fa-tag"></i> 点云</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2022/08/24/wsl-shen-du-xue-xi-zong-jie/" rel="prev" title="WSL 深度学习总结">
+      <i class="fa fa-chevron-right"></i> WSL 深度学习总结
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E9%81%8D%E9%98%85%E8%AF%BB%E8%AE%BA%E6%96%87"><span class="nav-text">第一遍阅读论文</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%84%9F%E5%8F%97"><span class="nav-text">感受</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%96%91%E6%83%91"><span class="nav-text">疑惑</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E9%81%8D%E9%98%85%E8%AF%BB%E8%AE%BA%E6%96%87"><span class="nav-text">第二遍阅读论文</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#abstract"><span class="nav-text">Abstract</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#introduction"><span class="nav-text">Introduction</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#problem-statement"><span class="nav-text">Problem Statement</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#method"><span class="nav-text">Method</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#experiments"><span class="nav-text">Experiments</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#conclusion"><span class="nav-text">conclusion</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%8D%E7%8E%B0%E7%BB%93%E6%9E%9C"><span class="nav-text">复现结果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="nav-text">参考文章</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BA%E6%96%87%E6%80%BB%E7%BB%93"><span class="nav-text">论文总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#pointnet-%E9%92%88%E5%AF%B9-pointnet-%E6%8F%90%E5%87%BA%E7%9A%84%E6%94%B9%E8%BF%9B"><span class="nav-text">PointNet++ 针对 PointNet
+提出的改进</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <a href="/">
+      <img class="site-author-image" itemprop="image" alt="SPTAU"
+        src="/images/avatar.gif">
+     </a>
+  <p class="site-author-name" itemprop="name">SPTAU</p>
+  <div class="site-description" itemprop="description">江湖行走 初心依旧 来年还乡 一梦千秋</div>
+</div>
+
+
+   <div class="feed-link motion-element">
+     <a href="/atom.xml" rel="alternate">
+       <i class="fa fa-rss"></i>
+       RSS
+     </a>
+   </div>
+ 
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/SPTAU" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;SPTAU" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:sptau@qq.com" title="E-Mail → mailto:sptau@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://blinkfox.github.io/" title="https:&#x2F;&#x2F;blinkfox.github.io" rel="noopener" target="_blank">闪烁之狐 - blinkfox</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.haomwei.com/" title="https:&#x2F;&#x2F;www.haomwei.com&#x2F;" rel="noopener" target="_blank">屠·城 - 屠夫9441</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://yearito.cn/" title="http:&#x2F;&#x2F;yearito.cn&#x2F;" rel="noopener" target="_blank">Yearito's Blog - yearito</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://io-oi.me/" title="https:&#x2F;&#x2F;io-oi.me&#x2F;" rel="noopener" target="_blank">reuixiy's Blog - reuixiy</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">SPTAU</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+<script src="https://unpkg.com/darkmode-js@1.5.7/lib/darkmode-js.min.js"></script>
+
+<script>
+var options = {
+  bottom: '32px',
+  right: '32px',
+  left: 'unset',
+  time: '0.3s',
+  mixColor: 'transparent',
+  backgroundColor: 'transparent',
+  buttonColorDark: '#100f2c',
+  buttonColorLight: '#fff',
+  saveInCookies: true,
+  label: '🌓',
+  autoMatchOsTheme: true
+}
+const darkmode = new Darkmode(options);
+window.darkmode = darkmode;
+darkmode.showWidget();
+</script>
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'bec2fca3b3d41c1395f0',
+      clientSecret: '5289e3c7e337ce51b1a0079140af41952a854b65',
+      repo        : 'SPTAU.github.io',
+      owner       : 'SPTAU',
+      admin       : ['SPTAU'],
+      id          : '9177ecd6caf070543647932b1f055f06',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

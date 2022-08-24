@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Monda:300,300italic,400,400italic,700,700italic|Lobster Two:300,300italic,400,400italic,700,700italic|Roboto Slab:300,300italic,400,400italic,700,700italic|Microsoft YaHei:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"sptau.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-1}},"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="在 WSL 下复现 PointNet 代码">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WSL 深度学习总结">
+<meta property="og:url" content="http://sptau.github.io/2022/08/24/wsl-shen-du-xue-xi-zong-jie/index.html">
+<meta property="og:site_name" content="巽离阁">
+<meta property="og:description" content="在 WSL 下复现 PointNet 代码">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://s2.loli.net/2022/08/19/5KaobVEOAci4W7v.png">
+<meta property="og:image" content="https://s2.loli.net/2022/08/19/oeDEZXPg13I8Txz.png">
+<meta property="og:image" content="https://s2.loli.net/2022/08/19/qEgKTBavbFm41zS.png">
+<meta property="og:image" content="https://s2.loli.net/2022/08/19/sc1w7rvyXxDOH93.png">
+<meta property="og:image" content="https://s2.loli.net/2022/08/19/ygeWncQrGSH1K3I.png">
+<meta property="article:published_time" content="2022-08-24T01:43:45.000Z">
+<meta property="article:modified_time" content="2022-08-24T09:04:24.249Z">
+<meta property="article:author" content="SPTAU">
+<meta property="article:tag" content="点云">
+<meta property="article:tag" content="PointNet">
+<meta property="article:tag" content="WSL">
+<meta property="article:tag" content="Ubuntu">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://s2.loli.net/2022/08/19/5KaobVEOAci4W7v.png">
+
+<link rel="canonical" href="http://sptau.github.io/2022/08/24/wsl-shen-du-xue-xi-zong-jie/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>WSL 深度学习总结 | 巽离阁</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="巽离阁" type="application/atom+xml">
+<style>.darkmode--activated{--body-bg-color:#282828;--content-bg-color:#333;--card-bg-color:#555;--text-color:#ccc;--blockquote-color:#bbb;--link-color:#ccc;--link-hover-color:#eee;--brand-color:#ddd;--brand-hover-color:#ddd;--table-row-odd-bg-color:#282828;--table-row-hover-bg-color:#363636;--menu-item-bg-color:#555;--btn-default-bg:#222;--btn-default-color:#ccc;--btn-default-border-color:#555;--btn-default-hover-bg:#666;--btn-default-hover-color:#ccc;--btn-default-hover-border-color:#666;--highlight-background:#282b2e;--highlight-foreground:#a9b7c6;--highlight-gutter-background:#34393d;--highlight-gutter-foreground:#9ca9b6}.darkmode--activated img{opacity:.75}.darkmode--activated img:hover{opacity:.9}.darkmode--activated code{color:#69dbdc;background:0 0}button.darkmode-toggle{z-index:9999}.darkmode-ignore,img{display:flex!important}.beian img{display:inline-block!important}</style></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">巽离阁</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">非生来富贵 是天道酬勤</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://sptau.github.io/2022/08/24/wsl-shen-du-xue-xi-zong-jie/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="SPTAU">
+      <meta itemprop="description" content="江湖行走 初心依旧 来年还乡 一梦千秋">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="巽离阁">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          WSL 深度学习总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-08-24 09:43:45 / 修改时间：17:04:24" itemprop="dateCreated datePublished" datetime="2022-08-24T09:43:45+08:00">2022-08-24</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <div class="post-description">在 WSL 下复现 PointNet 代码</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="环境安装">环境安装</h2>
+<ol type="1">
+<li><p>下载 Anaconda for Linux</p></li>
+<li><p>使用 <code>cd</code> 指令转到下载文件夹，输入如下指令安装
+Anaconda</p>
+<p><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bash Anaconda3-&lt;版本&gt;-Linux-x86_64.sh</span><br></pre></td></tr></table></figure></p>
+<blockquote>
+<p>在 WSL 中， Windows 系统文件保存在 <code>/mnt</code> 文件夹下， C
+盘对应文件夹 <code>/mnt/C</code></p>
+</blockquote></li>
+<li><p>配置环境变量</p>
+<p>输入如下指令，编辑 profile</p>
+<p><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/profile</span><br></pre></td></tr></table></figure></p>
+<p>在文件的最底端，添加如下代码</p>
+<p><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> PATH=&lt;Anaconda Adress&gt;/bin:<span class="variable">$PATH</span></span><br></pre></td></tr></table></figure></p>
+<p>输入如下指令，重新加载环境变量</p>
+<p><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure></p></li>
+<li><p>构建 Anaconda 环境</p>
+<p>输入以下指令创建新 conda 环境</p>
+<p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">conda create -n &lt;Environment Name&gt; pip python=&lt;Python Vertion&gt;</span><br></pre></td></tr></table></figure></p>
+<p>输入以下指令激活 conda 环境</p>
+<p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">conda activate &lt;Environment Name&gt;</span><br></pre></td></tr></table></figure></p>
+<p>使用 <code>pip install</code> 指令或 <code>conda install</code>
+指令安装环境所需模块</p></li>
+</ol>
+<h3 id="环境安装参考网页">环境安装参考网页</h3>
+<p>萝北村的枫子 - <a
+target="_blank" rel="noopener" href="https://blog.csdn.net/thy0000/article/details/122878599">Ubuntu
+安装 Anaconda 详细步骤</a></p>
+<p>文艺圈不知名刘先生 - <a
+target="_blank" rel="noopener" href="https://blog.csdn.net/huiruwei1020/article/details/107630269">WSL
+安装 Anaconda</a></p>
+<p>阿柴 - <a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/510556215">从零开始的
+WSL 深度学习环境配置</a></p>
+<p>Lyle Chen -<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/453778081">基于 WSL
+搭建深度学习开发环境</a></p>
+<h2 id="point-net-在-wsl-上复现">Point Net 在 WSL 上复现</h2>
+<p>根据作者在 GitHub 上的信息构建环境</p>
+<blockquote>
+<p>Installation Install TensorFlow. You may also need to install h5py.
+The code has been tested with Python 2.7, TensorFlow 1.0.1, CUDA 8.0 and
+cuDNN 5.1 on Ubuntu 14.04.</p>
+</blockquote>
+<ol type="1">
+<li><p>创建 python 2.7 conda 环境</p>
+<p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">conda create -n pointnet pip python=<span class="number">2.7</span></span><br><span class="line">conda activate pointnet</span><br></pre></td></tr></table></figure></p></li>
+<li><p>在 conda 环境中安装下列模块</p>
+<ul>
+<li>TensorFlow</li>
+<li>Matplotlib</li>
+<li>Pillow</li>
+<li>SciPy</li>
+<li>h5py</li>
+<li>PIL</li>
+</ul>
+<p>即输入如下指令</p>
+<p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">sudo pip install h5py</span><br><span class="line">conda install h5py</span><br><span class="line">conda install tensorflow-gpu=<span class="number">1.0</span><span class="number">.1</span></span><br><span class="line">conda install matplotlib</span><br><span class="line">conda install pillow</span><br><span class="line">conda install scipy</span><br><span class="line">conda install PIL</span><br></pre></td></tr></table></figure></p></li>
+<li><p>下载 <a
+target="_blank" rel="noopener" href="https://shapenet.cs.stanford.edu/media/modelnet40_ply_hdf5_2048.zip">modelnet40_ply_hdf5_2048</a>
+解压到 <code>pointnet-master/data</code> 文件夹下</p></li>
+<li><p>输入如下指令，执行 train.py</p>
+<p><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python train.py</span><br></pre></td></tr></table></figure></p>
+<blockquote>
+<p>train.py 中默认训练 250 epochs ， GTX 1060 训练 110 epochs 需要 40
+小时，而在 80 epoch 时，训练结果已收敛，若只是复现可以略微减少训练轮次
+输入 <code>python train.py --epoch &lt;epoch&gt;</code>
+即可调整最大训练轮次</p>
+</blockquote></li>
+<li><p>train.py 运行结果片段</p>
+<p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">**** EPOCH <span class="number">100</span> ****</span><br><span class="line">----<span class="number">0</span>-----</span><br><span class="line">mean loss: <span class="number">0.147063</span></span><br><span class="line">accuracy: <span class="number">0.951593</span></span><br><span class="line">----<span class="number">1</span>-----</span><br><span class="line">mean loss: <span class="number">0.169319</span></span><br><span class="line">accuracy: <span class="number">0.939941</span></span><br><span class="line">----<span class="number">2</span>-----</span><br><span class="line">mean loss: <span class="number">0.155273</span></span><br><span class="line">accuracy: <span class="number">0.940430</span></span><br><span class="line">----<span class="number">3</span>-----</span><br><span class="line">mean loss: <span class="number">0.176028</span></span><br><span class="line">accuracy: <span class="number">0.940918</span></span><br><span class="line">----<span class="number">4</span>-----</span><br><span class="line">mean loss: <span class="number">0.156226</span></span><br><span class="line">accuracy: <span class="number">0.941406</span></span><br><span class="line">----<span class="number">0</span>-----</span><br><span class="line">----<span class="number">1</span>-----</span><br><span class="line"><span class="built_in">eval</span> mean loss: <span class="number">0.564006</span></span><br><span class="line"><span class="built_in">eval</span> accuracy: <span class="number">0.874188</span></span><br><span class="line"><span class="built_in">eval</span> avg <span class="keyword">class</span> <span class="title class_">acc</span>: <span class="number">0.844451</span></span><br><span class="line">Model saved <span class="keyword">in</span> file: log/model.ckpt</span><br></pre></td></tr></table></figure></p></li>
+<li><p>输入如下指令，进行测试</p>
+<p><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python evaluate.py --visu</span><br></pre></td></tr></table></figure></p>
+<p>测试结果</p>
+<p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">eval</span> mean loss: <span class="number">0.535309</span></span><br><span class="line"><span class="built_in">eval</span> accuracy: <span class="number">0.880875</span></span><br><span class="line"><span class="built_in">eval</span> avg <span class="keyword">class</span> <span class="title class_">acc</span>: <span class="number">0.852448</span></span><br></pre></td></tr></table></figure></p></li>
+<li><p>输入如下指令，在 TensorBoard 中查看训练历史</p>
+<figure>
+<img src="https://s2.loli.net/2022/08/19/5KaobVEOAci4W7v.png"
+alt="accuracy" />
+<figcaption aria-hidden="true">accuracy</figcaption>
+</figure>
+<figure>
+<img src="https://s2.loli.net/2022/08/19/oeDEZXPg13I8Txz.png"
+alt="bn_decay" />
+<figcaption aria-hidden="true">bn_decay</figcaption>
+</figure>
+<figure>
+<img src="https://s2.loli.net/2022/08/19/qEgKTBavbFm41zS.png"
+alt="classify_loss" />
+<figcaption aria-hidden="true">classify_loss</figcaption>
+</figure>
+<figure>
+<img src="https://s2.loli.net/2022/08/19/sc1w7rvyXxDOH93.png"
+alt="loss" />
+<figcaption aria-hidden="true">loss</figcaption>
+</figure>
+<figure>
+<img src="https://s2.loli.net/2022/08/19/ygeWncQrGSH1K3I.png"
+alt="mat_loss" />
+<figcaption aria-hidden="true">mat_loss</figcaption>
+</figure></li>
+</ol>
+<h3 id="point-net-在-wsl-上复现参考网页">Point Net 在 WSL
+上复现参考网页</h3>
+<p>YQ8023family - <a
+target="_blank" rel="noopener" href="https://blog.csdn.net/qq_40234695/article/details/86223577">PointNet
+复现</a></p>
+<h3 id="point-net-在-wsl-上复现遇到问题">Point Net 在 WSL
+上复现遇到问题</h3>
+<ol type="1">
+<li><p>在进行训练的时候，检查 Windows 系统任务管理器，发现 GPU
+使用率基本为 0%，即没有使用 GPU 加速，且运行速度较慢</p>
+<p>可能的解决方法：</p>
+<ul>
+<li>在检查环境的时候发现没有安装 cudnn
+，怀疑可能是缺乏该模块影响了训练速度，稍后安装好后再进行尝试</li>
+<li>改用服务器进行训练，服务器的显卡比本机好，运行速度较快(GTX1060)</li>
+</ul>
+<p>后续解决：</p>
+<ul>
+<li>在输入指令 <code>conda install cudnn</code> 安装 cudnn 后，再次执行
+<code>train.py</code> 文件，发现已经可以调用核显(Intel® UHD Graphics
+630)的 GPU ，但是独显的 GPU 使用率依旧为 0%</li>
+</ul>
+<p>后续可能的解决方法：</p>
+<ul>
+<li><del>在检查 <code>train.py</code> 文件默认参数后发现，程序默认使用
+GPU 0，即本机的核显，使用指令 <code>python train.py --gpu 1</code>
+执行可使用本机独显</del></li>
+<li>经咨询后使用 <code>nvidia-smi</code> 指令查看显卡，发现只有独显 GTX
+1060，即不存在 GPU 1</li>
+</ul>
+<p>最终解决方法：</p>
+<ul>
+<li>输入 <code>conda remove tensorflow</code> 指令移除 TensorFlow
+库，输入 <code>conda install tensorflow-gpu==1.1.0</code> 安装
+TensorFlow-GPU 库</li>
+</ul>
+<p>事后追因：</p>
+<ol type="1">
+<li>安装环境时输入指令 <code>nvidia-smi</code> 检查驱动，发现
+<code>CUDA Version: 11.7</code> 且 <code>Driver Version: 516.94</code>
+就没有去安装 cudnn</li>
+<li>安装 TensorFlow 时，一开始有考虑安装 TensorFlow-GPU
+版本，但是想着尽量和作者要求的版本一致，然而并不存在 TensorFlow-GPU
+1.0.1 版本，最终安装了 TensorFlow 1.0.1 版本</li>
+</ol>
+<p>总结：</p>
+<ul>
+<li>安装环境时优先安装 cuda 、 cudnn ，若需要安装 TensorFlow
+库时，优先安装先进版本的 TensorFlow-GPU 库</li>
+</ul></li>
+<li><p>WSL 上安装的 Ubuntu-22.04 LTS
+因无法安装图形化界面，无法显示分类失败的图片，也没法通过输入
+<code>tensorboard --logdir log</code> 后打开 <a
+target="_blank" rel="noopener" href="http://localhost:6006" class="uri">http://localhost:6006</a>
+查看训练过程</p>
+<p>可能的解决方法：</p>
+<ul>
+<li>将训练后整个文件夹复制到 Windows 硬盘上，在 Windows 系统下查看</li>
+<li>后续实验发现，在 Ubuntu-20.04 LTS
+系统上可以实现图形化界面，也可尝试在该系统上进行论文复现</li>
+</ul></li>
+<li><p>在执行 train.py 文件时，弹出错误信息</p>
+<p><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Could not identify NUMA node of /job:localhost/replica:0/task:0/gpu:0, defaulting to 0.  Your kernel may not have been built with NUMA support.</span><br></pre></td></tr></table></figure></p>
+<p>翻找 TensorFlow 源码后找到弹出错误信息的原因</p>
+<blockquote>
+<p>For some reason the StreamExecutor couldn't get the NUMA affinity of
+the GPU. If this is not a multi-socket mobo with GPUs local to different
+buses, it doesn't matter. If it is, we may run into trouble later with
+data transfer operations. The trouble may manifest as slower than
+expected performance, or outright failures.</p>
+</blockquote>
+<p>最终处理是忽略该错误信息</p></li>
+</ol>
+<h3 id="解决问题参考网页">解决问题参考网页</h3>
+<p>小白的2015 - <a
+target="_blank" rel="noopener" href="https://blog.csdn.net/baixiaozhe/article/details/54598346">NUMA
+support</a></p>
+
+    </div>
+
+    
+    
+    
+
+    
+<div>
+  
+    <div style="text-align:center;color:#bfbfbf;font-size:16px;">
+      <span>-------- 本文结束 </span>
+      <i class="fa fa-paw"></i>
+      <span> 感谢阅读 --------</span>
+    </div>
+  
+</div>
+
+        
+
+<div>
+
+<!-- JS库 clipboard 拷贝内容到粘贴板-->
+<script src="https://cdn.bootcss.com/clipboard.js/2.0.1/clipboard.min.js"></script>
+
+<!-- JS库 sweetalert 显示提示信息-->
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+<ul class="post-copyright">
+
+  <!-- 本文标题 -->
+  <li>
+    <strong>post.copyright.title： </strong>
+    WSL 深度学习总结
+  </li>
+
+  <!-- 本文作者 -->
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>SPTAU
+  </li>
+
+  <!-- 创建时间 -->
+  <li>
+    <strong>创建时间： </strong>
+    2022年08月24日 - 09时08分
+  </li>
+
+  <!-- 修改时间 -->
+  <li>
+    <strong>修改时间： </strong>
+    2022年08月24日 - 17时08分
+  </li>
+
+  <!-- 引用链接 -->
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://sptau.github.io/2022/08/24/wsl-shen-du-xue-xi-zong-jie/" title="WSL 深度学习总结">http://sptau.github.io/2022/08/24/wsl-shen-du-xue-xi-zong-jie/</a>
+  </li>
+
+  <!-- 版权声明 -->
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E7%82%B9%E4%BA%91/" rel="tag"><i class="fa fa-tag"></i> 点云</a>
+              <a href="/tags/PointNet/" rel="tag"><i class="fa fa-tag"></i> PointNet</a>
+              <a href="/tags/WSL/" rel="tag"><i class="fa fa-tag"></i> WSL</a>
+              <a href="/tags/Ubuntu/" rel="tag"><i class="fa fa-tag"></i> Ubuntu</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/08/24/pointnet-plus-plus-lun-wen-zong-jie/" rel="next" title="PointNet++ 论文总结">
+      PointNet++ 论文总结 <i class="fa fa-chevron-left"></i>
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/08/24/wsl-an-zhuang-zong-jie/" rel="prev" title="WSL 安装总结">
+      <i class="fa fa-chevron-right"></i> WSL 安装总结
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E5%AE%89%E8%A3%85"><span class="nav-text">环境安装</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E5%AE%89%E8%A3%85%E5%8F%82%E8%80%83%E7%BD%91%E9%A1%B5"><span class="nav-text">环境安装参考网页</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#point-net-%E5%9C%A8-wsl-%E4%B8%8A%E5%A4%8D%E7%8E%B0"><span class="nav-text">Point Net 在 WSL 上复现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#point-net-%E5%9C%A8-wsl-%E4%B8%8A%E5%A4%8D%E7%8E%B0%E5%8F%82%E8%80%83%E7%BD%91%E9%A1%B5"><span class="nav-text">Point Net 在 WSL
+上复现参考网页</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#point-net-%E5%9C%A8-wsl-%E4%B8%8A%E5%A4%8D%E7%8E%B0%E9%81%87%E5%88%B0%E9%97%AE%E9%A2%98"><span class="nav-text">Point Net 在 WSL
+上复现遇到问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E9%97%AE%E9%A2%98%E5%8F%82%E8%80%83%E7%BD%91%E9%A1%B5"><span class="nav-text">解决问题参考网页</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <a href="/">
+      <img class="site-author-image" itemprop="image" alt="SPTAU"
+        src="/images/avatar.gif">
+     </a>
+  <p class="site-author-name" itemprop="name">SPTAU</p>
+  <div class="site-description" itemprop="description">江湖行走 初心依旧 来年还乡 一梦千秋</div>
+</div>
+
+
+   <div class="feed-link motion-element">
+     <a href="/atom.xml" rel="alternate">
+       <i class="fa fa-rss"></i>
+       RSS
+     </a>
+   </div>
+ 
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/SPTAU" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;SPTAU" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:sptau@qq.com" title="E-Mail → mailto:sptau@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://blinkfox.github.io/" title="https:&#x2F;&#x2F;blinkfox.github.io" rel="noopener" target="_blank">闪烁之狐 - blinkfox</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.haomwei.com/" title="https:&#x2F;&#x2F;www.haomwei.com&#x2F;" rel="noopener" target="_blank">屠·城 - 屠夫9441</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://yearito.cn/" title="http:&#x2F;&#x2F;yearito.cn&#x2F;" rel="noopener" target="_blank">Yearito's Blog - yearito</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://io-oi.me/" title="https:&#x2F;&#x2F;io-oi.me&#x2F;" rel="noopener" target="_blank">reuixiy's Blog - reuixiy</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">SPTAU</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+<script src="https://unpkg.com/darkmode-js@1.5.7/lib/darkmode-js.min.js"></script>
+
+<script>
+var options = {
+  bottom: '32px',
+  right: '32px',
+  left: 'unset',
+  time: '0.3s',
+  mixColor: 'transparent',
+  backgroundColor: 'transparent',
+  buttonColorDark: '#100f2c',
+  buttonColorLight: '#fff',
+  saveInCookies: true,
+  label: '🌓',
+  autoMatchOsTheme: true
+}
+const darkmode = new Darkmode(options);
+window.darkmode = darkmode;
+darkmode.showWidget();
+</script>
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'bec2fca3b3d41c1395f0',
+      clientSecret: '5289e3c7e337ce51b1a0079140af41952a854b65',
+      repo        : 'SPTAU.github.io',
+      owner       : 'SPTAU',
+      admin       : ['SPTAU'],
+      id          : '4faaf7a5ee3c5897fe043650fb8bd3fc',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

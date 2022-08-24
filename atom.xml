@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>巽离阁</title>
+  
+  <subtitle>非生来富贵 是天道酬勤</subtitle>
+  <link href="http://sptau.github.io/atom.xml" rel="self"/>
+  
+  <link href="http://sptau.github.io/"/>
+  <updated>2022-08-24T09:03:29.487Z</updated>
+  <id>http://sptau.github.io/</id>
+  
+  <author>
+    <name>SPTAU</name>
+    
+  </author>
+  
+  <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>PointNet++ 论文总结</title>
+    <link href="http://sptau.github.io/2022/08/24/pointnet-plus-plus-lun-wen-zong-jie/"/>
+    <id>http://sptau.github.io/2022/08/24/pointnet-plus-plus-lun-wen-zong-jie/</id>
+    <published>2022-08-24T01:46:55.000Z</published>
+    <updated>2022-08-24T09:03:29.487Z</updated>
+    
+    
+    <summary type="html">PointNet++: Deep Hierarchical Feature Learning on Point Sets in a Metric Space</summary>
+    
+    
+    
+    <category term="技术" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    <category term="学习" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/"/>
+    
+    
+    <category term="PointNet++" scheme="http://sptau.github.io/tags/PointNet/"/>
+    
+    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>WSL 深度学习总结</title>
+    <link href="http://sptau.github.io/2022/08/24/wsl-shen-du-xue-xi-zong-jie/"/>
+    <id>http://sptau.github.io/2022/08/24/wsl-shen-du-xue-xi-zong-jie/</id>
+    <published>2022-08-24T01:43:45.000Z</published>
+    <updated>2022-08-24T09:04:24.249Z</updated>
+    
+    
+    <summary type="html">在 WSL 下复现 PointNet 代码</summary>
+    
+    
+    
+    <category term="技术" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    <category term="Linux" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Linux/"/>
+    
+    
+    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
+    
+    <category term="PointNet" scheme="http://sptau.github.io/tags/PointNet/"/>
+    
+    <category term="WSL" scheme="http://sptau.github.io/tags/WSL/"/>
+    
+    <category term="Ubuntu" scheme="http://sptau.github.io/tags/Ubuntu/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>WSL 安装总结</title>
+    <link href="http://sptau.github.io/2022/08/24/wsl-an-zhuang-zong-jie/"/>
+    <id>http://sptau.github.io/2022/08/24/wsl-an-zhuang-zong-jie/</id>
+    <published>2022-08-24T01:38:36.000Z</published>
+    <updated>2022-08-24T09:04:25.665Z</updated>
+    
+    
+    <summary type="html">配置 WSL 在 Ubuntu 上进行训练</summary>
+    
+    
+    
+    <category term="技术" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    <category term="Linux" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Linux/"/>
+    
+    
+    <category term="WSL" scheme="http://sptau.github.io/tags/WSL/"/>
+    
+    <category term="Ubuntu" scheme="http://sptau.github.io/tags/Ubuntu/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>PointNet 论文总结</title>
+    <link href="http://sptau.github.io/2022/08/23/pointnet-lun-wen-zong-jie/"/>
+    <id>http://sptau.github.io/2022/08/23/pointnet-lun-wen-zong-jie/</id>
+    <published>2022-08-23T02:45:25.000Z</published>
+    <updated>2022-08-24T09:03:14.030Z</updated>
+    
+    
+    <summary type="html">PointNet: Deep Learning on Point Sets for 3D Classification and Segmentation</summary>
+    
+    
+    
+    <category term="技术" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    <category term="学习" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/"/>
+    
+    
+    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
+    
+    <category term="PointNet" scheme="http://sptau.github.io/tags/PointNet/"/>
+    
+  </entry>
+  
+</feed>
