@@ -105,3 +105,28 @@ deploy:
   type: git
   repo: git@github.com:SPTAU/SPTAU.github.io.git
   branch: master
+
+plugins: hexo-generate-feed
+
+# rss配置
+feed:
+  type: atom
+  path: atom.xml
+  limit: 20
+  hub:
+  content:
+  content_limit: 140
+  content_limit_delim: ' '
+  order_by: -date
+
+# 搜索配置
+search:
+  path: search.xml
+  field: post
+  format: html
+  limit: 10000
+
+# 链接中文转拼音配置
+permalink_pinyin:
+  enable: true
+  separator: '-' # default: '-'
