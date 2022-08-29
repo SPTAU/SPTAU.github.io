@@ -6,7 +6,7 @@
   <link href="http://sptau.github.io/atom.xml" rel="self"/>
   
   <link href="http://sptau.github.io/"/>
-  <updated>2022-08-24T09:03:29.487Z</updated>
+  <updated>2022-08-29T06:10:32.761Z</updated>
   <id>http://sptau.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>PyTorch 实现分类问题总结</title>
+    <link href="http://sptau.github.io/2022/08/28/pytorch-shi-xian-fen-lei-wen-ti-zong-jie/"/>
+    <id>http://sptau.github.io/2022/08/28/pytorch-shi-xian-fen-lei-wen-ti-zong-jie/</id>
+    <published>2022-08-28T03:37:14.000Z</published>
+    <updated>2022-08-29T06:10:32.761Z</updated>
+    
+    
+    <summary type="html">使用 Titanic Dataset 作为数据集，利用 PyTorch 实现乘客是否生还的二分类预测</summary>
+    
+    
+    
+    <category term="技术" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    <category term="Python" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Python/"/>
+    
+    
+    <category term="Python" scheme="http://sptau.github.io/tags/Python/"/>
+    
+    <category term="PyTorch" scheme="http://sptau.github.io/tags/PyTorch/"/>
+    
+  </entry>
   
   <entry>
     <title>PointNet++ 论文总结</title>
