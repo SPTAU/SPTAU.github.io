@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Monda:300,300italic,400,400italic,700,700italic|Lobster Two:300,300italic,400,400italic,700,700italic|Roboto Slab:300,300italic,400,400italic,700,700italic|Microsoft YaHei:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"sptau.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"default"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":{"gitalk":{"order":-1}},"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="本次实验采用 MNIST 作为数据集，搭建 CNN 实现手写数字识别">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PyTorch 实现基于 CNN 的图像分类总结">
+<meta property="og:url" content="http://sptau.github.io/2022/09/12/pytorch-shi-xian-ji-yu-cnn-de-tu-xiang-fen-lei-zong-jie/index.html">
+<meta property="og:site_name" content="巽离阁">
+<meta property="og:description" content="本次实验采用 MNIST 作为数据集，搭建 CNN 实现手写数字识别">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-09-12T11:52:36.000Z">
+<meta property="article:modified_time" content="2022-09-12T11:56:14.995Z">
+<meta property="article:author" content="SPTAU">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="PyTorch">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://sptau.github.io/2022/09/12/pytorch-shi-xian-ji-yu-cnn-de-tu-xiang-fen-lei-zong-jie/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>PyTorch 实现基于 CNN 的图像分类总结 | 巽离阁</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="巽离阁" type="application/atom+xml">
+<style>.darkmode--activated{--body-bg-color:#282828;--content-bg-color:#333;--card-bg-color:#555;--text-color:#ccc;--blockquote-color:#bbb;--link-color:#ccc;--link-hover-color:#eee;--brand-color:#ddd;--brand-hover-color:#ddd;--table-row-odd-bg-color:#282828;--table-row-hover-bg-color:#363636;--menu-item-bg-color:#555;--btn-default-bg:#222;--btn-default-color:#ccc;--btn-default-border-color:#555;--btn-default-hover-bg:#666;--btn-default-hover-color:#ccc;--btn-default-hover-border-color:#666;--highlight-background:#282b2e;--highlight-foreground:#a9b7c6;--highlight-gutter-background:#34393d;--highlight-gutter-foreground:#9ca9b6}.darkmode--activated img{opacity:.75}.darkmode--activated img:hover{opacity:.9}.darkmode--activated code{color:#69dbdc;background:0 0}button.darkmode-toggle{z-index:9999}.darkmode-ignore,img{display:flex!important}.beian img{display:inline-block!important}</style></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">巽离阁</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">非生来富贵 是天道酬勤</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://sptau.github.io/2022/09/12/pytorch-shi-xian-ji-yu-cnn-de-tu-xiang-fen-lei-zong-jie/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="SPTAU">
+      <meta itemprop="description" content="江湖行走 初心依旧 来年还乡 一梦千秋">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="巽离阁">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          PyTorch 实现基于 CNN 的图像分类总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-09-12 19:52:36 / 修改时间：19:56:14" itemprop="dateCreated datePublished" datetime="2022-09-12T19:52:36+08:00">2022-09-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index"><span itemprop="name">技术</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF/Python/" itemprop="url" rel="index"><span itemprop="name">Python</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <div class="post-description">本次实验采用 MNIST 作为数据集，搭建 CNN 实现手写数字识别</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="数据集">数据集</h2>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> torchvision <span class="keyword">import</span> datasets, transforms</span><br><span class="line"></span><br><span class="line">batch_size = <span class="number">64</span></span><br><span class="line">transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((<span class="number">0.1307</span>,), (<span class="number">0.3081</span>,))])</span><br><span class="line"></span><br><span class="line">train_dataset = datasets.MNIST(root=<span class="string">&quot;./dataset/mnist/&quot;</span>, train=<span class="literal">True</span>, download=<span class="literal">True</span>, transform=transform)</span><br><span class="line">train_loader = DataLoader(train_dataset, shuffle=<span class="literal">True</span>, batch_size=batch_size)</span><br><span class="line"></span><br><span class="line">test_dataset = datasets.MNIST(root=<span class="string">&quot;./dataset/mnist/&quot;</span>, train=<span class="literal">False</span>, download=<span class="literal">True</span>, transform=transform)</span><br><span class="line">test_loader = DataLoader(test_dataset, shuffle=<span class="literal">False</span>, atch_size=batch_size)</span><br></pre></td></tr></table></figure>
+<h3 id="torchvision.datasets">torchvision.datasets</h3>
+<p>torchvision.datasets 中包含了 <code>MNIST</code> 数据集</p>
+<p>通过 torchvision.datasets.MNIST 提供的 API
+可以下载、转换、加载数据集</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">datasets.MNIST(root, train=<span class="literal">True</span>, transform=<span class="literal">None</span>, target_transform=<span class="literal">None</span>, download=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
+<h4 id="参数解析">参数解析</h4>
+<ol type="1">
+<li><p>root</p>
+<p>str ，数据集路径对象</p>
+<p>用于储存 <code>processed/training.pt</code> 和
+<code>processed/test.pt</code></p></li>
+<li><p>train</p>
+<p>bool ，可选</p>
+<ul>
+<li>当 train 参数为 True 时，载入的数据集为训练集</li>
+<li>当 train 参数为 False 时，载入的数据集为测试集</li>
+</ul></li>
+<li><p>download</p>
+<p>bool ，可选</p>
+<ul>
+<li><p>当 download 参数为 True 且未下载过该数据时，将从 <a
+target="_blank" rel="noopener" href="http://yann.lecun.com/exdb/mnist/"
+class="uri">http://yann.lecun.com/exdb/mnist/</a> 下载数据集并将其放在
+root 参数指定路径下</p></li>
+<li><p>如果 download 参数为 True 且下载过该数据，则不会再次下载</p></li>
+</ul></li>
+<li><p>transform</p>
+<p>可调用对象，可选</p>
+<p>接收 PIL
+映像并返回转换版本的函数/变换。例如:transforms.RandomCrop</p></li>
+<li><p>target_transform</p>
+<p>可调用对象，可选</p>
+<p>一个接收目标并转换它的函数/变换。</p>
+<p>transform (callable, optional): A function/transform that takes in an
+PIL image and returns a transformed version. E.g, transforms.RandomCrop
+target_transform (callable, optional): A function/transform that takes
+in the target and transforms it.</p></li>
+</ol>
+<h3 id="torchvision.transforms">torchvision.transforms</h3>
+<p>torchvision.transforms 可以实现对图像的变化</p>
+<h4
+id="torchvision.transforms.composetransforms">torchvision.transforms.Compose(transforms)</h4>
+<p>Compose 函数可以实现不同变化的组合</p>
+<h4
+id="torchvision.transforms.totensor">torchvision.transforms.ToTensor()</h4>
+<p>ToTensor 函数可以将图像的多通道矩阵转换为张量形式，方便后续计算</p>
+<h4
+id="torchvision.transforms.nomalizemean-std-inplace">torchvision.transforms.Nomalize(mean,
+std[, inplace])</h4>
+<p>Normalize 函数可以用均值和标准差对张量图像进行归一化</p>
+<h5 id="mnist-数据集的均值和标准差">MNIST 数据集的均值和标准差</h5>
+<p>MNIST 数据集的均值为 0.1307 ， 标准差为 0.3081</p>
+<h2 id="网络设计">网络设计</h2>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Net</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">super</span>(Net, self).__init__()</span><br><span class="line">        self.conv1 = nn.Conv2d(<span class="number">1</span>, <span class="number">10</span>, kernel_size=<span class="number">5</span>)</span><br><span class="line">        self.conv2 = nn.Conv2d(<span class="number">10</span>, <span class="number">20</span>, kernel_size=<span class="number">5</span>)</span><br><span class="line">        self.pooling = nn.MaxPool2d(<span class="number">2</span>)</span><br><span class="line">        self.fc = nn.Linear(<span class="number">320</span>, <span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        <span class="comment"># Flatten data from (n, 1, 28, 28) to (n, 784)</span></span><br><span class="line">        batch_size = x.size(<span class="number">0</span>)</span><br><span class="line">        x = F.relu(self.pooling(self.conv1(x)))</span><br><span class="line">        x = F.relu(self.pooling(self.conv2(x)))</span><br><span class="line">        x = x.view(batch_size, -<span class="number">1</span>)  <span class="comment"># flatten</span></span><br><span class="line">        x = self.fc(x)</span><br><span class="line">        <span class="keyword">return</span> x</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">model = Net()</span><br><span class="line">device = torch.device(<span class="string">&quot;cuda:0&quot;</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">&quot;cpu&quot;</span>)</span><br><span class="line">model.to(device)</span><br></pre></td></tr></table></figure>
+<h3 id="torch.nn.conv2d-函数"><code>torch.nn.Conv2d()</code> 函数</h3>
+<p>Conv2d 函数可以实现卷积层</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride=<span class="number">1</span>, padding=<span class="number">0</span>, dilation=<span class="number">1</span>, groups=<span class="number">1</span>, bias=<span class="literal">True</span>, padding_mode=<span class="string">&#x27;zeros&#x27;</span>, device=<span class="literal">None</span>, dtype=<span class="literal">None</span>)</span><br></pre></td></tr></table></figure>
+<h4 id="部分参数解析">部分参数解析</h4>
+<ol type="1">
+<li><p>in_channels</p>
+<p>int ，必选</p>
+<p>输入的通道数</p></li>
+<li><p>out_channels</p>
+<p>int ，必选</p>
+<p>输出的通道数</p></li>
+<li><p>kernel_size</p>
+<p>int 或 tuple ，必选</p>
+<p>卷积核的尺寸</p></li>
+<li><p>stride</p>
+<p>int 或 tuple ，可选，默认为 1</p>
+<p>卷积时的步长</p></li>
+<li><p>padding</p>
+<p>int 或 tuple ，可选，默认为 0</p>
+<p>填充边缘的宽度</p></li>
+<li><p>dilation</p>
+<p>int 或 tuple ，可选，默认为 1</p>
+<p>卷积核中各元素的间距</p></li>
+<li><p>padding_mode</p>
+<p>str ，可选，默认为 'zeros'</p>
+<p>选择填充模式</p>
+<p>可选 'zeros' ， 'reflect' ， 'replicate' ， 'circular'</p></li>
+</ol>
+<h4 id="参考网页">参考网页</h4>
+<p>Pytorch - <a
+target="_blank" rel="noopener" href="https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html">CONV2D</a></p>
+<p>夏普通 - <a
+target="_blank" rel="noopener" href="https://blog.csdn.net/qq_34243930/article/details/107231539">pytorch之torch.nn.Conv2d()函数详解</a></p>
+<h3 id="torch.nn.maxpool2d-函数"><code>torch.nn.MaxPool2d()</code>
+函数</h3>
+<p>MaxPool2d 函数可以实现最大池化层</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">torch.nn.MaxPool2d(kernel_size, stride=<span class="literal">None</span>, padding=<span class="number">0</span>, dilation=<span class="number">1</span>, return_indices=<span class="literal">False</span>, ceil_mode=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
+<h4 id="部分参数解析-1">部分参数解析</h4>
+<ol type="1">
+<li><p>kernel_size</p>
+<p>int 或 tuple ，必选</p>
+<p>进行最大值池化的窗口大小</p></li>
+<li><p>stride</p>
+<p>int 或 tuple ，可选，默认与 kernel_size 参数相同</p>
+<p>最大值池化窗口的步长</p></li>
+<li><p>padding</p>
+<p>int 或 tuple ，可选，默认为 0</p>
+<p>填充边缘的宽度</p></li>
+</ol>
+<h4 id="参考网页-1">参考网页</h4>
+<p>PyTorch - <a
+target="_blank" rel="noopener" href="https://pytorch.org/docs/stable/generated/torch.nn.MaxPool2d.html#torch.nn.MaxPool2d">MAXPOOL2D</a></p>
+<h3 id="torch.nn.linear-函数"><code>torch.nn.Linear()</code> 函数</h3>
+<p>Linear 函数可以实现全连接层，其本质上是线性层</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">torch.nn.Linear(in_features, out_features, bias=<span class="literal">True</span>, device=<span class="literal">None</span>, dtype=<span class="literal">None</span>)</span><br></pre></td></tr></table></figure>
+<h4 id="部分参数解析-2">部分参数解析</h4>
+<ol type="1">
+<li><p>in_features</p>
+<p>输入数据的维度</p></li>
+<li><p>out_features</p>
+<p>输出数据的维度</p></li>
+<li><p>bias</p>
+<p>bool ，默认为 True</p>
+<p>决定是否开启加法偏置</p></li>
+</ol>
+<h4 id="参考网页-2">参考网页</h4>
+<p>PyTorch - <a
+target="_blank" rel="noopener" href="https://pytorch.org/docs/stable/generated/torch.nn.Linear.html?highlight=linear#torch.nn.Linear">LINEAR</a></p>
+<h3 id="pytorch-使用-gpu-训练">PyTorch 使用 GPU 训练</h3>
+<p>PyTorch 使用 GPU 训练时先需要</p>
+<ul>
+<li><p>单 GPU 训练时</p>
+<p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">device = torch.device(<span class="string">&quot;cuda:0&quot;</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">&quot;cpu&quot;</span>)</span><br></pre></td></tr></table></figure></p></li>
+<li><p>多 GPU 训练时</p>
+<p>需要根据所需使用的 GPU ，在文件头部添加</p>
+<p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">os.environ[<span class="string">&#x27;CUDA_VISIBLE_DEVICES&#x27;</span>] = <span class="string">&quot;1, 2, 3&quot;</span></span><br></pre></td></tr></table></figure></p>
+<p>使得当前代码仅对指定 GPU 可见，系统将会对指定 GPU
+从零开始重新编号</p>
+<p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">device = torch.device(<span class="string">&quot;cuda&quot;</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">&quot;cpu&quot;</span>)</span><br></pre></td></tr></table></figure></p></li>
+<li><p>训练过程中</p>
+<p>需要将模型和张量计算都搬运到 GPU 上</p>
+<p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">model.to(device)</span><br></pre></td></tr></table></figure></p>
+<p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">inputs, targets = inputs.to(device), targets.to(device)</span><br></pre></td></tr></table></figure></p></li>
+</ul>
+<h4 id="参考网页-3">参考网页</h4>
+<p>hello_dear_you - <a
+target="_blank" rel="noopener" href="https://blog.csdn.net/hello_dear_you/article/details/120190567">pytorch
+之多 GPU 训练</a></p>
+<h2 id="设计-loss-和优化器">设计 Loss 和优化器</h2>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">criterion = torch.nn.CrossEntropyLoss()</span><br><span class="line">optimizer = optim.SGD(model.parameters(), lr=<span class="number">0.01</span>, momentum=<span class="number">0.5</span>)</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+    
+<div>
+  
+    <div style="text-align:center;color:#bfbfbf;font-size:16px;">
+      <span>-------- 本文结束 </span>
+      <i class="fa fa-paw"></i>
+      <span> 感谢阅读 --------</span>
+    </div>
+  
+</div>
+
+        
+
+<div>
+
+<!-- JS库 clipboard 拷贝内容到粘贴板-->
+<script src="https://cdn.bootcss.com/clipboard.js/2.0.1/clipboard.min.js"></script>
+
+<!-- JS库 sweetalert 显示提示信息-->
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+<ul class="post-copyright">
+
+  <!-- 本文标题 -->
+  <li>
+    <strong>post.copyright.title： </strong>
+    PyTorch 实现基于 CNN 的图像分类总结
+  </li>
+
+  <!-- 本文作者 -->
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>SPTAU
+  </li>
+
+  <!-- 创建时间 -->
+  <li>
+    <strong>创建时间： </strong>
+    2022年09月12日 - 19时09分
+  </li>
+
+  <!-- 修改时间 -->
+  <li>
+    <strong>修改时间： </strong>
+    2022年09月12日 - 19时09分
+  </li>
+
+  <!-- 引用链接 -->
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://sptau.github.io/2022/09/12/pytorch-shi-xian-ji-yu-cnn-de-tu-xiang-fen-lei-zong-jie/" title="PyTorch 实现基于 CNN 的图像分类总结">http://sptau.github.io/2022/09/12/pytorch-shi-xian-ji-yu-cnn-de-tu-xiang-fen-lei-zong-jie/</a>
+  </li>
+
+  <!-- 版权声明 -->
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Python/" rel="tag"><i class="fa fa-tag"></i> Python</a>
+              <a href="/tags/PyTorch/" rel="tag"><i class="fa fa-tag"></i> PyTorch</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/09/12/pytorch-shi-xian-duo-fen-lei-ren-wu-zong-jie/" rel="next" title="PyTorch 实现多分类任务总结">
+      PyTorch 实现多分类任务总结 <i class="fa fa-chevron-left"></i>
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/08/28/pytorch-shi-xian-fen-lei-wen-ti-zong-jie/" rel="prev" title="PyTorch 实现分类问题总结">
+      <i class="fa fa-chevron-right"></i> PyTorch 实现分类问题总结
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E9%9B%86"><span class="nav-text">数据集</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#torchvision.datasets"><span class="nav-text">torchvision.datasets</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90"><span class="nav-text">参数解析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#torchvision.transforms"><span class="nav-text">torchvision.transforms</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#torchvision.transforms.composetransforms"><span class="nav-text">torchvision.transforms.Compose(transforms)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#torchvision.transforms.totensor"><span class="nav-text">torchvision.transforms.ToTensor()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#torchvision.transforms.nomalizemean-std-inplace"><span class="nav-text">torchvision.transforms.Nomalize(mean,
+std[, inplace])</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#mnist-%E6%95%B0%E6%8D%AE%E9%9B%86%E7%9A%84%E5%9D%87%E5%80%BC%E5%92%8C%E6%A0%87%E5%87%86%E5%B7%AE"><span class="nav-text">MNIST 数据集的均值和标准差</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E8%AE%BE%E8%AE%A1"><span class="nav-text">网络设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#torch.nn.conv2d-%E5%87%BD%E6%95%B0"><span class="nav-text">torch.nn.Conv2d() 函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%83%A8%E5%88%86%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90"><span class="nav-text">部分参数解析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E7%BD%91%E9%A1%B5"><span class="nav-text">参考网页</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#torch.nn.maxpool2d-%E5%87%BD%E6%95%B0"><span class="nav-text">torch.nn.MaxPool2d()
+函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%83%A8%E5%88%86%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90-1"><span class="nav-text">部分参数解析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E7%BD%91%E9%A1%B5-1"><span class="nav-text">参考网页</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#torch.nn.linear-%E5%87%BD%E6%95%B0"><span class="nav-text">torch.nn.Linear() 函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%83%A8%E5%88%86%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90-2"><span class="nav-text">部分参数解析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E7%BD%91%E9%A1%B5-2"><span class="nav-text">参考网页</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pytorch-%E4%BD%BF%E7%94%A8-gpu-%E8%AE%AD%E7%BB%83"><span class="nav-text">PyTorch 使用 GPU 训练</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E7%BD%91%E9%A1%B5-3"><span class="nav-text">参考网页</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1-loss-%E5%92%8C%E4%BC%98%E5%8C%96%E5%99%A8"><span class="nav-text">设计 Loss 和优化器</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <a href="/">
+      <img class="site-author-image" itemprop="image" alt="SPTAU"
+        src="/images/avatar.gif">
+     </a>
+  <p class="site-author-name" itemprop="name">SPTAU</p>
+  <div class="site-description" itemprop="description">江湖行走 初心依旧 来年还乡 一梦千秋</div>
+</div>
+
+
+   <div class="feed-link motion-element">
+     <a href="/atom.xml" rel="alternate">
+       <i class="fa fa-rss"></i>
+       RSS
+     </a>
+   </div>
+ 
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/SPTAU" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;SPTAU" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:sptau@qq.com" title="E-Mail → mailto:sptau@qq.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      友情链接
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://blinkfox.github.io/" title="https:&#x2F;&#x2F;blinkfox.github.io" rel="noopener" target="_blank">闪烁之狐 - blinkfox</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://www.haomwei.com/" title="https:&#x2F;&#x2F;www.haomwei.com&#x2F;" rel="noopener" target="_blank">屠·城 - 屠夫9441</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="http://yearito.cn/" title="http:&#x2F;&#x2F;yearito.cn&#x2F;" rel="noopener" target="_blank">Yearito's Blog - yearito</a>
+        </li>
+        <li class="links-of-blogroll-item">
+          <a href="https://io-oi.me/" title="https:&#x2F;&#x2F;io-oi.me&#x2F;" rel="noopener" target="_blank">reuixiy's Blog - reuixiy</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">SPTAU</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+<script src="https://unpkg.com/darkmode-js@1.5.7/lib/darkmode-js.min.js"></script>
+
+<script>
+var options = {
+  bottom: '32px',
+  right: '32px',
+  left: 'unset',
+  time: '0.3s',
+  mixColor: 'transparent',
+  backgroundColor: 'transparent',
+  buttonColorDark: '#100f2c',
+  buttonColorLight: '#fff',
+  saveInCookies: true,
+  label: '🌓',
+  autoMatchOsTheme: true
+}
+const darkmode = new Darkmode(options);
+window.darkmode = darkmode;
+darkmode.showWidget();
+</script>
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'bec2fca3b3d41c1395f0',
+      clientSecret: '5289e3c7e337ce51b1a0079140af41952a854b65',
+      repo        : 'SPTAU.github.io',
+      owner       : 'SPTAU',
+      admin       : ['SPTAU'],
+      id          : 'a10dcff60257f5fa2d18a2bd819f6b8e',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

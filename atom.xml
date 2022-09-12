@@ -6,7 +6,7 @@
   <link href="http://sptau.github.io/atom.xml" rel="self"/>
   
   <link href="http://sptau.github.io/"/>
-  <updated>2022-08-29T06:10:32.761Z</updated>
+  <updated>2022-09-12T11:59:36.825Z</updated>
   <id>http://sptau.github.io/</id>
   
   <author>
@@ -15,6 +15,75 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>PyTorch 实现分类问题总结-续</title>
+    <link href="http://sptau.github.io/2022/09/12/pytorch-shi-xian-fen-lei-wen-ti-zong-jie-xu/"/>
+    <id>http://sptau.github.io/2022/09/12/pytorch-shi-xian-fen-lei-wen-ti-zong-jie-xu/</id>
+    <published>2022-09-12T11:58:44.000Z</published>
+    <updated>2022-09-12T11:59:36.825Z</updated>
+    
+    
+    <summary type="html">针对上一次 Titanic 数据二分类预测实验的拓展和延伸</summary>
+    
+    
+    
+    <category term="技术" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    <category term="Python" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Python/"/>
+    
+    
+    <category term="Python" scheme="http://sptau.github.io/tags/Python/"/>
+    
+    <category term="PyTorch" scheme="http://sptau.github.io/tags/PyTorch/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>PyTorch 实现多分类任务总结</title>
+    <link href="http://sptau.github.io/2022/09/12/pytorch-shi-xian-duo-fen-lei-ren-wu-zong-jie/"/>
+    <id>http://sptau.github.io/2022/09/12/pytorch-shi-xian-duo-fen-lei-ren-wu-zong-jie/</id>
+    <published>2022-09-12T11:57:15.000Z</published>
+    <updated>2022-09-12T11:58:05.630Z</updated>
+    
+    
+    <summary type="html">本次试验以 Kaggle 竞赛中的 Otto Group Product Classification Challenge 作为数据集</summary>
+    
+    
+    
+    <category term="技术" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    <category term="Python" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Python/"/>
+    
+    
+    <category term="Python" scheme="http://sptau.github.io/tags/Python/"/>
+    
+    <category term="PyTorch" scheme="http://sptau.github.io/tags/PyTorch/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>PyTorch 实现基于 CNN 的图像分类总结</title>
+    <link href="http://sptau.github.io/2022/09/12/pytorch-shi-xian-ji-yu-cnn-de-tu-xiang-fen-lei-zong-jie/"/>
+    <id>http://sptau.github.io/2022/09/12/pytorch-shi-xian-ji-yu-cnn-de-tu-xiang-fen-lei-zong-jie/</id>
+    <published>2022-09-12T11:52:36.000Z</published>
+    <updated>2022-09-12T11:56:14.995Z</updated>
+    
+    
+    <summary type="html">本次实验采用 MNIST 作为数据集，搭建 CNN 实现手写数字识别</summary>
+    
+    
+    
+    <category term="技术" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    <category term="Python" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Python/"/>
+    
+    
+    <category term="Python" scheme="http://sptau.github.io/tags/Python/"/>
+    
+    <category term="PyTorch" scheme="http://sptau.github.io/tags/PyTorch/"/>
+    
+  </entry>
   
   <entry>
     <title>PyTorch 实现分类问题总结</title>
@@ -56,9 +125,9 @@
     <category term="学习" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/"/>
     
     
-    <category term="PointNet++" scheme="http://sptau.github.io/tags/PointNet/"/>
-    
     <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
+    
+    <category term="PointNet++" scheme="http://sptau.github.io/tags/PointNet/"/>
     
   </entry>
   
@@ -79,9 +148,9 @@
     <category term="Linux" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Linux/"/>
     
     
-    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
-    
     <category term="PointNet" scheme="http://sptau.github.io/tags/PointNet/"/>
+    
+    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
     
     <category term="WSL" scheme="http://sptau.github.io/tags/WSL/"/>
     
@@ -129,9 +198,9 @@
     <category term="学习" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/"/>
     
     
-    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
-    
     <category term="PointNet" scheme="http://sptau.github.io/tags/PointNet/"/>
+    
+    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
     
   </entry>
   
