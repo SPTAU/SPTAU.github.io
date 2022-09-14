@@ -222,6 +222,28 @@ eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=True, num_
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 ```
 
+#### 计算数据集均值和方差
+
+```py
+def get_CIFAR10_mean_std(dataset_dir):
+    train_dataset = datasets.CIFAR10(root=dataset_dir, train=True, download=True, transform=T.ToTensor())
+    train_loader = DataLoader(dataset=train_dataset, batch_size=64, shuffle=True)
+
+    channels_sum, channels_squared_sum, num_batches = 0, 0, 0
+
+    for data, _ in train_loader:  # 批量*通道*高*宽
+        channels_sum += torch.mean(data, dim=[0, 2, 3])  # 剩下通道这个维度
+        channels_squared_sum += torch.mean(data**2, dim=[0, 2, 3])
+        num_batches += 1
+
+    mean = channels_sum / num_batches
+    std = (channels_squared_sum / num_batches - mean**2) ** 0.5
+
+    return mean, std
+```
+
+通过自定义函数来计算数据集均值和方差，可以自适应的对数据集进行归一化
+
 #### 划分验证集
 
 在本次实验中为了观察训练过程中的模型训练效果，从训练集中划分出了验证集
