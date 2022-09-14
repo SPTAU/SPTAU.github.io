@@ -36,7 +36,7 @@
 <meta property="og:image" content="https://s2.loli.net/2022/09/08/crteKZJRNg1IHMy.png">
 <meta property="og:image" content="https://s2.loli.net/2022/09/08/MVjkvqKGX9Aswy4.png">
 <meta property="article:published_time" content="2022-09-12T11:57:15.000Z">
-<meta property="article:modified_time" content="2022-09-12T11:58:05.630Z">
+<meta property="article:modified_time" content="2022-09-14T03:36:10.583Z">
 <meta property="article:author" content="SPTAU">
 <meta property="article:tag" content="Python">
 <meta property="article:tag" content="PyTorch">
@@ -229,10 +229,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-09-12 19:57:15 / 修改时间：19:58:05" itemprop="dateCreated datePublished" datetime="2022-09-12T19:57:15+08:00">2022-09-12</time>
+              <time title="创建时间：2022-09-12 19:57:15" itemprop="dateCreated datePublished" datetime="2022-09-12T19:57:15+08:00">2022-09-12</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-09-14 11:36:10" itemprop="dateModified" datetime="2022-09-14T11:36:10+08:00">2022-09-14</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -288,8 +294,8 @@ Group Product Classification Challenge 数据集</a>，解压在
 <p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">train_data.head()</span><br></pre></td></tr></table></figure></p>
 <figure>
 <img src="https://s2.loli.net/2022/09/08/3YcZkMEpTrs5eQI.png"
-alt="image.png" />
-<figcaption aria-hidden="true">image.png</figcaption>
+alt="training dataset(before)" />
+<figcaption aria-hidden="true">training dataset(before)</figcaption>
 </figure>
 <p>查找是否存在缺失值</p>
 <p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">train_data.isnull().<span class="built_in">sum</span>()</span><br></pre></td></tr></table></figure></p>
@@ -303,8 +309,8 @@ alt="image.png" />
 <p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">test_data.head()</span><br></pre></td></tr></table></figure></p>
 <figure>
 <img src="https://s2.loli.net/2022/09/08/JCoyXLOQSTUMe3w.png"
-alt="image.png" />
-<figcaption aria-hidden="true">image.png</figcaption>
+alt="testing dataset(before)" />
+<figcaption aria-hidden="true">testing dataset(before)</figcaption>
 </figure>
 <p>查找是否存在缺失值</p>
 <p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">test_data.isnull().<span class="built_in">sum</span>()</span><br></pre></td></tr></table></figure></p>
@@ -321,8 +327,8 @@ Classs_1 ~ Class_9 的字符串</p>
 <p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">train_data.head()</span><br></pre></td></tr></table></figure></p>
 <figure>
 <img src="https://s2.loli.net/2022/09/08/yTz1bLJh6EuU2WV.png"
-alt="image.png" />
-<figcaption aria-hidden="true">image.png</figcaption>
+alt="training dataset(after)" />
+<figcaption aria-hidden="true">training dataset(after)</figcaption>
 </figure>
 <p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">train_data.info()</span><br></pre></td></tr></table></figure></p>
 <p><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;<span class="keyword">class</span> <span class="string">&#x27;pandas.core.frame.DataFrame&#x27;</span>&gt;</span><br><span class="line">Int64Index: <span class="number">61878</span> entries, <span class="number">1</span> to <span class="number">61878</span></span><br><span class="line">Columns: <span class="number">102</span> entries, feat_1 to target_Class_9</span><br><span class="line">dtypes: int64(<span class="number">93</span>), uint8(<span class="number">9</span>)</span><br><span class="line">memory usage: <span class="number">44.9</span> MB</span><br></pre></td></tr></table></figure></p>
@@ -390,14 +396,14 @@ NLLLoss</p>
 <p>Loss 随训练轮次变化</p>
 <figure>
 <img src="https://s2.loli.net/2022/09/08/crteKZJRNg1IHMy.png"
-alt="image.png" />
-<figcaption aria-hidden="true">image.png</figcaption>
+alt="Loss-Epoch" />
+<figcaption aria-hidden="true">Loss-Epoch</figcaption>
 </figure>
 <p>acc 随训练轮次变化</p>
 <figure>
 <img src="https://s2.loli.net/2022/09/08/MVjkvqKGX9Aswy4.png"
-alt="image.png" />
-<figcaption aria-hidden="true">image.png</figcaption>
+alt="acc-Epoch" />
+<figcaption aria-hidden="true">acc-Epoch</figcaption>
 </figure>
 
     </div>
@@ -449,7 +455,7 @@ alt="image.png" />
   <!-- 修改时间 -->
   <li>
     <strong>修改时间： </strong>
-    2022年09月12日 - 19时09分
+    2022年09月14日 - 11时09分
   </li>
 
   <!-- 引用链接 -->
@@ -575,7 +581,7 @@ alt="image.png" />
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-count">9</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
