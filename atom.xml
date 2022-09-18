@@ -6,7 +6,7 @@
   <link href="http://sptau.github.io/atom.xml" rel="self"/>
   
   <link href="http://sptau.github.io/"/>
-  <updated>2022-09-14T08:21:03.512Z</updated>
+  <updated>2022-09-18T13:30:02.686Z</updated>
   <id>http://sptau.github.io/</id>
   
   <author>
@@ -17,11 +17,34 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>PyTorch 搭建 ResNet 模型对 CIFAR10 数据集分类总结</title>
+    <link href="http://sptau.github.io/2022/09/18/pytorch-da-jian-resnet-mo-xing-dui-cifar10-shu-ju-ji-fen-lei-zong-jie/"/>
+    <id>http://sptau.github.io/2022/09/18/pytorch-da-jian-resnet-mo-xing-dui-cifar10-shu-ju-ji-fen-lei-zong-jie/</id>
+    <published>2022-09-18T13:28:12.000Z</published>
+    <updated>2022-09-18T13:30:02.686Z</updated>
+    
+    
+    <summary type="html">本次试验将以 [Deep Residual Learning for Image Recognition] 作为主要参考来源，使用 PyTorch 搭建 ResNet 模型实现对 CIFAR10 数据集的训练和测试</summary>
+    
+    
+    
+    <category term="技术" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/"/>
+    
+    <category term="学习" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/"/>
+    
+    
+    <category term="Python" scheme="http://sptau.github.io/tags/Python/"/>
+    
+    <category term="PyTorch" scheme="http://sptau.github.io/tags/PyTorch/"/>
+    
+  </entry>
+  
+  <entry>
     <title>PyTorch 搭建 AlexNet 模型对 CIFAR10 数据集分类总结</title>
     <link href="http://sptau.github.io/2022/09/14/pytorch-da-jian-alexnet-mo-xing-dui-cifar10-shu-ju-ji-fen-lei-zong-jie/"/>
     <id>http://sptau.github.io/2022/09/14/pytorch-da-jian-alexnet-mo-xing-dui-cifar10-shu-ju-ji-fen-lei-zong-jie/</id>
     <published>2022-09-14T07:52:30.000Z</published>
-    <updated>2022-09-14T08:21:03.512Z</updated>
+    <updated>2022-09-14T11:05:02.775Z</updated>
     
     
     <summary type="html">本次实验将以 ImageNet Classification with Deep Convolutional Neural Networks 作为主要参考来源，使用 PyTorch 搭建 AlexNet 模型实现对 CIFAR10 数据集的训练和测试</summary>
