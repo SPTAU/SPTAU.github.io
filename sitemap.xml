@@ -56,7 +56,7 @@
   </url>
   
   <url>
-    <loc>http://sptau.github.io/posts/cfb33f60.html</loc>
+    <loc>http://sptau.github.io/posts/f1f0ebac.html</loc>
     
     <lastmod>2025-02-10</lastmod>
     
@@ -65,7 +65,7 @@
   </url>
   
   <url>
-    <loc>http://sptau.github.io/posts/f1f0ebac.html</loc>
+    <loc>http://sptau.github.io/posts/cfb33f60.html</loc>
     
     <lastmod>2025-02-10</lastmod>
     
@@ -128,7 +128,7 @@
   </url>
   
   <url>
-    <loc>http://sptau.github.io/posts/49b59d4e.html</loc>
+    <loc>http://sptau.github.io/posts/2ed13e41.html</loc>
     
     <lastmod>2025-02-10</lastmod>
     
@@ -137,7 +137,7 @@
   </url>
   
   <url>
-    <loc>http://sptau.github.io/posts/2ed13e41.html</loc>
+    <loc>http://sptau.github.io/posts/49b59d4e.html</loc>
     
     <lastmod>2025-02-10</lastmod>
     
@@ -210,6 +210,13 @@
   </url>
   
   <url>
+    <loc>http://sptau.github.io/tags/PointNet/</loc>
+    <lastmod>2025-02-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>http://sptau.github.io/tags/Python/</loc>
     <lastmod>2025-02-10</lastmod>
     <changefreq>weekly</changefreq>
@@ -218,13 +225,6 @@
   
   <url>
     <loc>http://sptau.github.io/tags/PyTorch/</loc>
-    <lastmod>2025-02-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>http://sptau.github.io/tags/PointNet/</loc>
     <lastmod>2025-02-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -254,14 +254,14 @@
   </url>
   
   <url>
-    <loc>http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Python/</loc>
+    <loc>http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/</loc>
     <lastmod>2025-02-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/</loc>
+    <loc>http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Python/</loc>
     <lastmod>2025-02-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
