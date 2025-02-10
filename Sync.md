@@ -9,7 +9,11 @@ git clone -b hexo git@github.com:<your_username>/<your_username>.github.io
 然后进入 `<your_username>.github.io` 目录
 
 ```git
+npm install -g npm
 npm install
+npm install -g hexo-cli
+hexo clean --all && hexo g && hexo d
+hexo new post <title>
 ```
 
 OpenWares - [hexo github pages 多设备同步](https://openwares.net/2020/12/06/hexo-multi-devices-sync/)
