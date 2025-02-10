@@ -294,11 +294,11 @@
     <category term="学习" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/"/>
     
     
-    <category term="PointNet++" scheme="http://sptau.github.io/tags/PointNet/"/>
+    <category term="CNN" scheme="http://sptau.github.io/tags/CNN/"/>
     
     <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
     
-    <category term="CNN" scheme="http://sptau.github.io/tags/CNN/"/>
+    <category term="PointNet++" scheme="http://sptau.github.io/tags/PointNet/"/>
     
   </entry>
   
@@ -319,9 +319,9 @@
     <category term="Linux" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Linux/"/>
     
     
-    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
-    
     <category term="PointNet" scheme="http://sptau.github.io/tags/PointNet/"/>
+    
+    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
     
     <category term="WSL" scheme="http://sptau.github.io/tags/WSL/"/>
     
@@ -369,9 +369,9 @@
     <category term="学习" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/"/>
     
     
-    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
-    
     <category term="PointNet" scheme="http://sptau.github.io/tags/PointNet/"/>
+    
+    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
     
   </entry>
   
