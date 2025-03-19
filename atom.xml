@@ -96,9 +96,9 @@
     <category term="学习" scheme="http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/"/>
     
     
-    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
-    
     <category term="Python" scheme="http://sptau.github.io/tags/Python/"/>
+    
+    <category term="点云" scheme="http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/"/>
     
   </entry>
   
