@@ -7,11 +7,11 @@ comments: false
 
 **关于我**
 
-Z 世代，GDUTer，死肥宅，科技、历史、哲学、ACG 爱好者，Python、C++、Deep Learning、Point Cloud 学习中，方向为无监督点云补全
+死肥宅，科技、历史、哲学、ACG 爱好者，Python、Deep Learning、Point Cloud 学习中
 
 **关于本站**
 
-本站始建于 2022 年 8 月 23 日，托管于 GitHub ，主要记录博主的学习总结
+本站始建于 2022 年 8 月 23 日，托管于 GitHub ，主要记录博主的学习生活总结
 
 **Power By**
 
