@@ -497,288 +497,6 @@ Venice, 66–75. DOI:<a href="https://doi.org/10.1109/ICCV.2017.17" class="uri">
       </tags>
   </entry>
   <entry>
-    <title>PointNet++ 论文总结</title>
-    <url>/posts/3e81cdbb.html</url>
-    <content><![CDATA[<h2 id="第一遍阅读论文">第一遍阅读论文</h2>
-<h3 id="感受">感受</h3>
-<ol type="1">
-<li><a href="https://proceedings.neurips.cc/paper/2017/hash/d8bf84be3800d12f74d8b05e9b89836f-Abstract.html">PointNet++</a>
-的网络结构和 FPN
-结构很像，都使用“由上至下——下采样”、“横向连接——跨级链接”及“由下至上——上采样”的结构，从而对多尺度特征图进行融合，将高层的语义信息与低层的几何细节结合。</li>
-<li>相比起 <a href="https://openaccess.thecvf.com/content_cvpr_2017/html/Qi_PointNet_Deep_Learning_CVPR_2017_paper.html">PointNet</a>
-论文，这篇论文更难懂一点。或许是因为 PointNet 结构很简单。</li>
-</ol>
-<h3 id="疑惑">疑惑</h3>
-<ol type="1">
-<li><p>PointNet++ 对点云进行多次降采样后调用 PointNet</p>
-<p>那么调用的是 PointNet 的哪一个模型？是分类模型还是语义分割模型？
-PointNet 的输出结果是怎样的？</p></li>
-<li><p>采样层使用最远点采样法进行分组</p>
-<p>计算距离的坐标基点是哪里？是原点吗？计算的是什么距离？是欧氏距离吗？</p></li>
-</ol>
-<h2 id="第二遍阅读论文">第二遍阅读论文</h2>
-<h3 id="abstract">Abstract</h3>
-<ol type="1">
-<li><p>PointNet 的缺点</p>
-<p>PointNet
-不能很好地捕捉到局部结构信息，其识别细腻度模式的能力较弱，且难以应用在复杂场景</p></li>
-<li><p>PointNet++ 的优点</p>
-<p>PointNet++ 引入分层神经网络，在嵌套分区上递归应用 PointNet
-；通过距离学习不同尺度的局部信息；加入集合学习层，以自适应地结合来自多个尺度的特征</p></li>
-</ol>
-<h3 id="introduction">Introduction</h3>
-<ol type="1">
-<li><p>PointNet++ 的特征提取过程</p>
-<ol type="1">
-<li>PointNet++ 通过底层空间的距离度量将点集划分为若干重叠的局部单元</li>
-<li>PointNet++ 从局部单元中提取捕捉精细几何结构的局部特征；</li>
-<li>PointNet++
-将所有局部特征被进一步分组为更大的单元并被处理以产生更高层次的特征</li>
-<li>PointNet++ 重复步骤 3 ，直到我们得到整个点集的特征。</li>
-</ol></li>
-<li><p>PointNet++ 面临的问题</p>
-<ol type="1">
-<li><p>如何产生局部单元</p>
-<p>通过最远点采样法选取分区质心</p></li>
-<li><p>如何通过局部特征学习器抽象出点集或局部特征</p></li>
-<li><p>如何在密度不均匀的点集进行自适应分组</p>
-<ul>
-<li>在图像中，较小的卷积核可以提升 CNN 提取特征的能力</li>
-<li>在点集中，在较小的邻域不足以让网络稳健地提取特征</li>
-</ul></li>
-</ol></li>
-</ol>
-<h3 id="problem-statement">Problem Statement</h3>
-<p>设计一个输入为点集，输出为分级的语义信息的函数</p>
-<h3 id="method">Method</h3>
-<figure>
-<img data-src="https://s2.loli.net/2022/08/19/xhqnjzpP1SsQKrR.png" alt="PointNet++ 网络结构图">
-<figcaption aria-hidden="true">PointNet++ 网络结构图</figcaption>
-</figure>
-<ol type="1">
-<li><p>回顾 PointNet</p>
-<p><span class="math display">\[f(x_1,...,x_n) ≈
-\gamma(\max_{i=1,...,n}\{h(x_i)\})\tag{1}\]</span></p>
-<p>PointNet
-简单高效，具有很强的鲁棒性，但是缺乏在不同尺度上捕捉局部结构的能力</p></li>
-<li><p>分层特征学习</p>
-<p>PointNet++ 的分层结构由多层 set abstraction 层级构成</p>
-<p>每层 set abstraction 层级由采样层、分组层和 PointNet 层构成</p>
-<ul>
-<li><p>采样层从点集中选择一些点作为中心点</p></li>
-<li><p>分组层寻找中心点周围的相邻点来构建局部单元</p></li>
-<li><p>PointNet 层使用 mini-PointNet 从局部单元中提取特征</p></li>
-</ul>
-<p>set abstraction 层级的输入是 <span class="math inline">\(N \times (d
-+ C)\)</span> 的矩阵，输出是 <span class="math inline">\(N' \times
-(d' + C')\)</span> 的矩阵</p>
-<blockquote>
-<p>输入矩阵来自 $N $ 个具有 $ d $ 维坐标和 $ C$ 维特征的点 输出矩阵由
-$N' $ 个具有 $ d' $ 维坐标和 $ C'$ 维特征的点组成</p>
-</blockquote>
-<ol type="1">
-<li><p>采样层</p>
-<p>该层的输入是点集 <span class="math inline">\(\{x_1, x_2, ..., x_n
-\}\)</span> ，输出是子点集 <span class="math inline">\(\{x_{i_1},
-x_{i_2}, ..., x_{i_n} \}\)</span></p>
-<p>采样层使用最远采样法，从点集中选择几何距离较远的点作为子点集，子点集中的点即为中心点</p>
-<p>常用的几何距离有欧氏距离和测地距离</p>
-<p>选择初始点的方法有随机选取和选取距离点云重心的最远点</p>
-<p>最远采样法相比于随机采样，能够更好覆盖整个点集；相比于 CNN
-，最远采样法以一种依赖数据的方式生成感受野</p></li>
-<li><p>分组层</p>
-<p>该层的输入是整个点集构成的 <span class="math inline">\(N \times (d +
-C)\)</span> 矩阵和采样层输出的子点集的坐标构成的 <span class="math inline">\(N' \times d\)</span> 矩阵，输出是 <span class="math inline">\(N' \times K \times (d + C)\)</span> 的矩阵</p>
-<blockquote>
-<p>K 是中心点附近的点数，可以自适应调整</p>
-</blockquote>
-<p>分组层使用球状半径查询，从点集中寻找中心点半径范围内的 K 个点</p>
-<p>球状半径查询相比于 kNN 搜索，能够保证固定的区域尺度</p></li>
-<li><p>PointNet 层</p>
-<p>该层的输入是 <span class="math inline">\(N' \times K \times (d +
-C)\)</span> 矩阵，输出是 <span class="math inline">\(N' \times (d +
-C')\)</span> 的矩阵</p></li>
-</ol></li>
-<li><p>非均匀采样密度下的特征学习</p>
-<ol type="1">
-<li><p>多尺度分组</p>
-<p>对每个尺度的分组都送入 PointNet
-层进行特征提取，然后将特征连接起来作为中心点的特征</p>
-<p>计算成本很高</p></li>
-<li><p>多分辨率分组</p>
-<p>将大尺度的特征和送入 PointNet 层提取的小尺度特征进行拼接</p>
-<p>在密度较低的区域，自适应提升大尺度特征的权重</p>
-<p>在密度较高的区域，自适应提升送入 PointNet
-层提取的小尺度特征的权重</p></li>
-<li><p>随机丢弃输入数据</p>
-<p>在将数据输入进 PointNet 层之前进行 95% 的重新采样</p></li>
-</ol></li>
-<li><p>分割任务中点特征的传播</p>
-<p>在语义分割任务中，希望得到所有原始点的点特征</p>
-<ol type="1">
-<li><p>将所有的点都作为中心点进行采样分组</p>
-<p>计算成本很高</p></li>
-<li><p>将特征用内插特征值从子采样点传播到原始点</p>
-<p>内插特征值使用基于 k 近邻的反距离加权平均</p>
-<p>将内插的特征值与跳过的链接点特征相连接</p>
-<p><span class="math display">\[{f^{(i)}} = {\frac {\sum_{i=1}^{k}
-{w_{i}(x)} {f}_{i}^{(j)}} {\sum_{i=1}^{k}{w_{i}(x)}}} \quad where \quad
-{w}_{i}(x) = {\frac {1} {d(x, x_i)^p}}, j = 1, ..., C \qquad
-\tag{2}\]</span></p></li>
-</ol></li>
-</ol>
-<h3 id="experiments">Experiments</h3>
-<ol type="1">
-<li><p>数据集</p>
-<ol type="1">
-<li><p>MNIST</p>
-<p>70k 张二维图片，按 6:1 比例划分训练集和测试集</p></li>
-<li><p>ModelNet40</p>
-<p>40 类 12311 个 CAD 模型，按 4:1 比例划分训练集和测试集</p></li>
-<li><p>SHREC15</p>
-<p>50 类 1200 个 CAD 模型，每个类别包括 24
-种形状，使用五折交叉验证</p></li>
-<li><p>ScanNet</p>
-<p>1513 个室内扫描重建场景，按 4:1 比例划分训练集和测试集</p></li>
-</ol></li>
-<li><p>欧氏几何空间中的点集分类</p>
-<p>在 MNIST 和 ModelNet40 数据集中的表现明显优于 PointNet</p>
-<p>在模拟的不均匀数据集中，保持很好的性能</p></li>
-<li><p>场景语义分割</p>
-<p>对抽样密度变化具有稳健性</p></li>
-<li><p>非欧几何空间中的点集分类</p>
-<p>对每个模型构建由成对的测地线距离诱导的度量空间</p>
-<p>提取 WKS 、 HKS
-和多尺度高斯曲率等特征作为特征，而不是以三维坐标作为特征</p>
-<p>因为以三维坐标作为特征不能揭示内在结构，而且受姿势变化的影响很大</p></li>
-<li><p>特征可视化</p>
-<p>通过特征可视化可以看出 PointNet++ 学习到了物体的基本结构</p></li>
-</ol>
-<h3 id="conclusion">conclusion</h3>
-<p>改进方向：</p>
-<p>如何通过在每个局部区域分享更多的计算来加快网络的推理速度</p>
-<h2 id="复现结果">复现结果</h2>
-<p>代码源自 yanx27 - <a href="https://github.com/yanx27/Pointnet_Pointnet2_pytorch">PyTorch
-Implementation of PointNet and PointNet++</a></p>
-<p>输入如下指令开始训练 PointNet++ 分类模型</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">python train_classification.py --model pointnet2_cls_ssg --log_dir pointnet2_cls_ssg</span><br></pre></td></tr></tbody></table></figure>
-<p>训练最终结果</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">Epoch <span class="number">200</span> (<span class="number">200</span>/<span class="number">200</span>):</span><br><span class="line">Train Instance Accuracy: <span class="number">0.976626</span></span><br><span class="line">Test Instance Accuracy: <span class="number">0.920146</span>, Class Accuracy: <span class="number">0.890121</span></span><br><span class="line">Best Instance Accuracy: <span class="number">0.926133</span>, Class Accuracy: <span class="number">0.898150</span></span><br><span class="line">End of training...</span><br></pre></td></tr></tbody></table></figure>
-<p>输入如下指令开始测试 PointNet++ 分类模型</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">python test_classification.py --log_dir pointnet2_cls_ssg</span><br></pre></td></tr></tbody></table></figure>
-<p>测试最终结果</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">Test Instance Accuracy: <span class="number">0.927751</span>, Class Accuracy: <span class="number">0.896012</span></span><br></pre></td></tr></tbody></table></figure>
-<h2 id="参考文章">参考文章</h2>
-<p>刘昕宸 - <a href="https://zhuanlan.zhihu.com/p/266324173">搞懂
-PointNet++ ，这篇文章就够了！</a></p>
-<p>Guoguang Du - <a href="https://blog.csdn.net/dsoftware/article/details/107184116">最远点采样(Farthest
-Point Sampling)介绍</a></p>
-<h2 id="论文总结">论文总结</h2>
-<h3 id="pointnet-针对-pointnet-提出的改进">PointNet++ 针对 PointNet
-提出的改进</h3>
-<ol type="1">
-<li><p>PointNet
-只是提取点云中各个点的空间特征，然后聚合成全局信息。这样不能很好地提取局部结构信息</p>
-<p>PointNet++
-通过采样和分组将点集划分为不同的重叠区域，即整合局部邻域</p></li>
-<li><p>PointNet
-在聚合成全局信息时只使用了最大值池化。这样会损失大量信息</p>
-<p>PointNet++
-采用多层神经网络，对点集中的分组不断进行下采样，提取不同尺度下的
-local-global feature</p></li>
-<li><p>PointNet
-中的语义分割模型提取的中间特征是全局特征和局部特征拼接而成，特征的差异度不够</p>
-<p>PointNet++
-先进行下采样再进行上采样，使用跨级链接和内插特征值拼接对应层的
-local-global feature</p></li>
-</ol>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>学习</category>
-      </categories>
-      <tags>
-        <tag>CNN</tag>
-        <tag>PointNet++</tag>
-        <tag>点云</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>PyTorch 实现分类问题总结-续</title>
-    <url>/posts/49b59d4e.html</url>
-    <content><![CDATA[<h2 id="问题回顾">问题回顾</h2>
-<h3 id="多线程加载-dataset">多线程加载 Dataset</h3>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">dataset = TitanicDataset(<span class="string">"./dataset/titanic/processed_train.csv"</span>)</span><br><span class="line">train_loader = DataLoader(dataset=dataset, batch_size=<span class="number">32</span>, shuffle=<span class="literal">True</span>, num_workers=<span class="number">2</span>)</span><br></pre></td></tr></tbody></table></figure>
-<p>其中参数 num_works
-表示载入数据时使用的进程数，此时如果参数的值不为0而使用多进程时会出现报错</p>
-<blockquote>
-<p>RuntimeError: An attempt has been made to start a new process before
-the current process has finished its bootstrapping phase. This probably
-means that you are not using fork to start your child processes and you
-have forgotten to use the proper idiom in the main module: if
-<code>__name__ == '__main__':</code> freeze_support() ... The
-"<code>freeze_support()</code>" line can be omitted if the program is
-not going to be frozen to produce an executable.</p>
-</blockquote>
-<h4 id="解决方法">解决方法</h4>
-<p>当参数 num_works 不为 0 时，需要在数据调用前之前加上
-<code>if __name__ == '__main__':</code></p>
-<h4 id="参考网页">参考网页</h4>
-<p>diandianti - <a href="https://www.jianshu.com/p/4a1a92f0efd9">pytorch-Dataloader多进程使用出错</a></p>
-<h3 id="k-折交叉校验法">K 折交叉校验法</h3>
-<p>K 折交叉校验法是将训练集划分为 K 份子数据集，然后进行 K 轮训练，在第
-K 轮训练时，将第 K 份子数据集作为验证集来评估训练结果，最终会得到 K
-个结构相同，参数不同的网络，然后再从中选择评价最好模型</p>
-<p>在实际训练中可以将下列代码嵌入训练过程中</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">kfold = KFold(n_splits=k_folds, shuffle=<span class="literal">True</span>)</span><br><span class="line"><span class="keyword">for</span> fold, (train_ids, test_ids) <span class="keyword">in</span> <span class="built_in">enumerate</span>(kfold.split(train_dataset)):</span><br><span class="line">    train_subsampler = SubsetRandomSampler(train_ids)</span><br><span class="line">    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_subsampler)</span><br><span class="line">    test_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=test_subsampler)</span><br><span class="line">    <span class="comment"># training epoch</span></span><br></pre></td></tr></tbody></table></figure>
-<p>使得在每一折训练时，训练集和验证集能够变化</p>
-<h4 id="参考网页-1">参考网页</h4>
-<p>Jennie_J - <a href="https://blog.csdn.net/weixin_43685844/article/details/88635492">sklearn
-KFold()</a></p>
-<p>外部逍遥 - <a href="https://zhuanlan.zhihu.com/p/150446294">python
-sklearn中KFold与StratifiedKFold</a></p>
-<p>christianversloot - <a href="https://github.com/christianversloot/machine-learning-articles/blob/main/how-to-use-k-fold-cross-validation-with-pytorch.md">How
-to use K-fold Cross Validation with PyTorch?</a></p>
-<h3 id="归一化问题">归一化问题</h3>
-<h4 id="归一化与划分训练集和验证集顺序问题">归一化与划分训练集和验证集顺序问题</h4>
-<p>应当先进行训练集划分再进行归一化</p>
-<p>因为归一化实际上是从数据集中提取信息，而算法不应知道来自训练集以外信息，否则一定程度上会导致标签泄漏，造成训练结果出现偏差</p>
-<h4 id="参考网页-2">参考网页</h4>
-<p>PigOrz - <a href="https://blog.csdn.net/qq_33731081/article/details/103852478">【关于归一化与反归一化数据统一的问题】：训练集与测试集必须使用同一参数的归一化与反归一化</a></p>
-<p>lizju - <a href="https://blog.csdn.net/weixin_42227482/article/details/105829627">DataFrame的归一化</a></p>
-<p>Shian150629 - <a href="https://blog.csdn.net/weixin_43759518/article/details/113880715">标准化，归一化与训练-测试集数据处理</a></p>
-<h3 id="模型保存">模型保存</h3>
-<h4 id="保存加载模型参数">保存/加载模型参数</h4>
-<ol type="1">
-<li><p>保存</p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">torch.save(model.state_dict(), PATH)</span><br></pre></td></tr></tbody></table></figure><p></p></li>
-<li><p>加载</p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">model = TheModelClass(*args, **kwargs)</span><br><span class="line">model.load_state_dict(torch.load(PATH))</span><br><span class="line">model.<span class="built_in">eval</span>()</span><br></pre></td></tr></tbody></table></figure><p></p></li>
-</ol>
-<h4 id="保存加载整个模型">保存/加载整个模型</h4>
-<ol type="1">
-<li><p>保存</p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">torch.save(model, PATH)</span><br></pre></td></tr></tbody></table></figure><p></p></li>
-<li><p>加载</p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="comment"># Model class must be defined somewhere</span></span><br><span class="line">model = torch.load(PATH)</span><br><span class="line">model.<span class="built_in">eval</span>()</span><br></pre></td></tr></tbody></table></figure><p></p></li>
-</ol>
-<h4 id="参考网页-3">参考网页</h4>
-<p>爱不持久 - <a href="https://blog.csdn.net/wacebb/article/details/108021921">Pytorch如何保存和加载模型参数</a></p>
-<p>机器学习入坑者 - <a href="https://zhuanlan.zhihu.com/p/94971100">一文梳理pytorch保存和重载模型参数攻略</a></p>
-<p>PyTorch - <a href="https://pytorch.org/tutorials/beginner/saving_loading_models.html">SAVING
-AND LOADING MODELS</a></p>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>Python</category>
-      </categories>
-      <tags>
-        <tag>CNN</tag>
-        <tag>Python</tag>
-        <tag>PyTorch</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>PointNet 论文总结</title>
     <url>/posts/2ed13e41.html</url>
     <content><![CDATA[<p>作者提出了使用对称网络提取点云特征、局部特征与全局特征相结合的点云处理方法</p>
@@ -1089,149 +807,281 @@ tensor2 在 axis 维度上拼接起来</p>
         <category>学习</category>
       </categories>
       <tags>
-        <tag>点云</tag>
         <tag>PointNet</tag>
+        <tag>点云</tag>
       </tags>
   </entry>
   <entry>
-    <title>PyTorch 实现基于 CNN 的图像分类总结</title>
-    <url>/posts/605ef827.html</url>
-    <content><![CDATA[<h2 id="数据集">数据集</h2>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> torchvision <span class="keyword">import</span> datasets, transforms</span><br><span class="line"></span><br><span class="line">batch_size = <span class="number">64</span></span><br><span class="line">transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((<span class="number">0.1307</span>,), (<span class="number">0.3081</span>,))])</span><br><span class="line"></span><br><span class="line">train_dataset = datasets.MNIST(root=<span class="string">"./dataset/mnist/"</span>, train=<span class="literal">True</span>, download=<span class="literal">True</span>, transform=transform)</span><br><span class="line">train_loader = DataLoader(train_dataset, shuffle=<span class="literal">True</span>, batch_size=batch_size)</span><br><span class="line"></span><br><span class="line">test_dataset = datasets.MNIST(root=<span class="string">"./dataset/mnist/"</span>, train=<span class="literal">False</span>, download=<span class="literal">True</span>, transform=transform)</span><br><span class="line">test_loader = DataLoader(test_dataset, shuffle=<span class="literal">False</span>, atch_size=batch_size)</span><br></pre></td></tr></tbody></table></figure>
-<h3 id="torchvision.datasets">torchvision.datasets</h3>
-<p>torchvision.datasets 中包含了 <code>MNIST</code> 数据集</p>
-<p>通过 torchvision.datasets.MNIST 提供的 API
-可以下载、转换、加载数据集</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">datasets.MNIST(root, train=<span class="literal">True</span>, transform=<span class="literal">None</span>, target_transform=<span class="literal">None</span>, download=<span class="literal">False</span>)</span><br></pre></td></tr></tbody></table></figure>
-<h4 id="参数解析">参数解析</h4>
+    <title>PointNet++ 论文总结</title>
+    <url>/posts/3e81cdbb.html</url>
+    <content><![CDATA[<h2 id="第一遍阅读论文">第一遍阅读论文</h2>
+<h3 id="感受">感受</h3>
 <ol type="1">
-<li><p>root</p>
-<p>str ，数据集路径对象</p>
-<p>用于储存 <code>processed/training.pt</code> 和
-<code>processed/test.pt</code></p></li>
-<li><p>train</p>
-<p>bool ，可选</p>
+<li><a href="https://proceedings.neurips.cc/paper/2017/hash/d8bf84be3800d12f74d8b05e9b89836f-Abstract.html">PointNet++</a>
+的网络结构和 FPN
+结构很像，都使用“由上至下——下采样”、“横向连接——跨级链接”及“由下至上——上采样”的结构，从而对多尺度特征图进行融合，将高层的语义信息与低层的几何细节结合。</li>
+<li>相比起 <a href="https://openaccess.thecvf.com/content_cvpr_2017/html/Qi_PointNet_Deep_Learning_CVPR_2017_paper.html">PointNet</a>
+论文，这篇论文更难懂一点。或许是因为 PointNet 结构很简单。</li>
+</ol>
+<h3 id="疑惑">疑惑</h3>
+<ol type="1">
+<li><p>PointNet++ 对点云进行多次降采样后调用 PointNet</p>
+<p>那么调用的是 PointNet 的哪一个模型？是分类模型还是语义分割模型？
+PointNet 的输出结果是怎样的？</p></li>
+<li><p>采样层使用最远点采样法进行分组</p>
+<p>计算距离的坐标基点是哪里？是原点吗？计算的是什么距离？是欧氏距离吗？</p></li>
+</ol>
+<h2 id="第二遍阅读论文">第二遍阅读论文</h2>
+<h3 id="abstract">Abstract</h3>
+<ol type="1">
+<li><p>PointNet 的缺点</p>
+<p>PointNet
+不能很好地捕捉到局部结构信息，其识别细腻度模式的能力较弱，且难以应用在复杂场景</p></li>
+<li><p>PointNet++ 的优点</p>
+<p>PointNet++ 引入分层神经网络，在嵌套分区上递归应用 PointNet
+；通过距离学习不同尺度的局部信息；加入集合学习层，以自适应地结合来自多个尺度的特征</p></li>
+</ol>
+<h3 id="introduction">Introduction</h3>
+<ol type="1">
+<li><p>PointNet++ 的特征提取过程</p>
+<ol type="1">
+<li>PointNet++ 通过底层空间的距离度量将点集划分为若干重叠的局部单元</li>
+<li>PointNet++ 从局部单元中提取捕捉精细几何结构的局部特征；</li>
+<li>PointNet++
+将所有局部特征被进一步分组为更大的单元并被处理以产生更高层次的特征</li>
+<li>PointNet++ 重复步骤 3 ，直到我们得到整个点集的特征。</li>
+</ol></li>
+<li><p>PointNet++ 面临的问题</p>
+<ol type="1">
+<li><p>如何产生局部单元</p>
+<p>通过最远点采样法选取分区质心</p></li>
+<li><p>如何通过局部特征学习器抽象出点集或局部特征</p></li>
+<li><p>如何在密度不均匀的点集进行自适应分组</p>
 <ul>
-<li>当 train 参数为 True 时，载入的数据集为训练集</li>
-<li>当 train 参数为 False 时，载入的数据集为测试集</li>
+<li>在图像中，较小的卷积核可以提升 CNN 提取特征的能力</li>
+<li>在点集中，在较小的邻域不足以让网络稳健地提取特征</li>
 </ul></li>
-<li><p>download</p>
-<p>bool ，可选</p>
+</ol></li>
+</ol>
+<h3 id="problem-statement">Problem Statement</h3>
+<p>设计一个输入为点集，输出为分级的语义信息的函数</p>
+<h3 id="method">Method</h3>
+<figure>
+<img data-src="https://s2.loli.net/2022/08/19/xhqnjzpP1SsQKrR.png" alt="PointNet++ 网络结构图">
+<figcaption aria-hidden="true">PointNet++ 网络结构图</figcaption>
+</figure>
+<ol type="1">
+<li><p>回顾 PointNet</p>
+<p><span class="math display">\[f(x_1,...,x_n) ≈
+\gamma(\max_{i=1,...,n}\{h(x_i)\})\tag{1}\]</span></p>
+<p>PointNet
+简单高效，具有很强的鲁棒性，但是缺乏在不同尺度上捕捉局部结构的能力</p></li>
+<li><p>分层特征学习</p>
+<p>PointNet++ 的分层结构由多层 set abstraction 层级构成</p>
+<p>每层 set abstraction 层级由采样层、分组层和 PointNet 层构成</p>
 <ul>
-<li><p>当 download 参数为 True 且未下载过该数据时，将从 <a href="http://yann.lecun.com/exdb/mnist/" class="uri">http://yann.lecun.com/exdb/mnist/</a> 下载数据集并将其放在
-root 参数指定路径下</p></li>
-<li><p>如果 download 参数为 True 且下载过该数据，则不会再次下载</p></li>
-</ul></li>
-<li><p>transform</p>
-<p>可调用对象，可选</p>
-<p>接收 PIL
-映像并返回转换版本的函数/变换。例如:transforms.RandomCrop</p></li>
-<li><p>target_transform</p>
-<p>可调用对象，可选</p>
-<p>一个接收目标并转换它的函数/变换。</p>
-<p>transform (callable, optional): A function/transform that takes in an
-PIL image and returns a transformed version. E.g, transforms.RandomCrop
-target_transform (callable, optional): A function/transform that takes
-in the target and transforms it.</p></li>
-</ol>
-<h3 id="torchvision.transforms">torchvision.transforms</h3>
-<p>torchvision.transforms 可以实现对图像的变化</p>
-<h4 id="torchvision.transforms.composetransforms">torchvision.transforms.Compose(transforms)</h4>
-<p>Compose 函数可以实现不同变化的组合</p>
-<h4 id="torchvision.transforms.totensor">torchvision.transforms.ToTensor()</h4>
-<p>ToTensor 函数可以将图像的多通道矩阵转换为张量形式，方便后续计算</p>
-<h4 id="torchvision.transforms.nomalizemean-std-inplace">torchvision.transforms.Nomalize(mean,
-std[, inplace])</h4>
-<p>Normalize 函数可以用均值和标准差对张量图像进行归一化</p>
-<h5 id="mnist-数据集的均值和标准差">MNIST 数据集的均值和标准差</h5>
-<p>MNIST 数据集的均值为 0.1307 ， 标准差为 0.3081</p>
-<h2 id="网络设计">网络设计</h2>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Net</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">super</span>(Net, <span class="variable language_">self</span>).__init__()</span><br><span class="line">        <span class="variable language_">self</span>.conv1 = nn.Conv2d(<span class="number">1</span>, <span class="number">10</span>, kernel_size=<span class="number">5</span>)</span><br><span class="line">        <span class="variable language_">self</span>.conv2 = nn.Conv2d(<span class="number">10</span>, <span class="number">20</span>, kernel_size=<span class="number">5</span>)</span><br><span class="line">        <span class="variable language_">self</span>.pooling = nn.MaxPool2d(<span class="number">2</span>)</span><br><span class="line">        <span class="variable language_">self</span>.fc = nn.Linear(<span class="number">320</span>, <span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        <span class="comment"># Flatten data from (n, 1, 28, 28) to (n, 784)</span></span><br><span class="line">        batch_size = x.size(<span class="number">0</span>)</span><br><span class="line">        x = F.relu(<span class="variable language_">self</span>.pooling(<span class="variable language_">self</span>.conv1(x)))</span><br><span class="line">        x = F.relu(<span class="variable language_">self</span>.pooling(<span class="variable language_">self</span>.conv2(x)))</span><br><span class="line">        x = x.view(batch_size, -<span class="number">1</span>)  <span class="comment"># flatten</span></span><br><span class="line">        x = <span class="variable language_">self</span>.fc(x)</span><br><span class="line">        <span class="keyword">return</span> x</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">model = Net()</span><br><span class="line">device = torch.device(<span class="string">"cuda:0"</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">"cpu"</span>)</span><br><span class="line">model.to(device)</span><br></pre></td></tr></tbody></table></figure>
-<h3 id="torch.nn.conv2d-函数"><code>torch.nn.Conv2d()</code> 函数</h3>
-<p>Conv2d 函数可以实现卷积层</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride=<span class="number">1</span>, padding=<span class="number">0</span>, dilation=<span class="number">1</span>, groups=<span class="number">1</span>, bias=<span class="literal">True</span>, padding_mode=<span class="string">'zeros'</span>, device=<span class="literal">None</span>, dtype=<span class="literal">None</span>)</span><br></pre></td></tr></tbody></table></figure>
-<h4 id="部分参数解析">部分参数解析</h4>
-<ol type="1">
-<li><p>in_channels</p>
-<p>int ，必选</p>
-<p>输入的通道数</p></li>
-<li><p>out_channels</p>
-<p>int ，必选</p>
-<p>输出的通道数</p></li>
-<li><p>kernel_size</p>
-<p>int 或 tuple ，必选</p>
-<p>卷积核的尺寸</p></li>
-<li><p>stride</p>
-<p>int 或 tuple ，可选，默认为 1</p>
-<p>卷积时的步长</p></li>
-<li><p>padding</p>
-<p>int 或 tuple ，可选，默认为 0</p>
-<p>填充边缘的宽度</p></li>
-<li><p>dilation</p>
-<p>int 或 tuple ，可选，默认为 1</p>
-<p>卷积核中各元素的间距</p></li>
-<li><p>padding_mode</p>
-<p>str ，可选，默认为 'zeros'</p>
-<p>选择填充模式</p>
-<p>可选 'zeros' ， 'reflect' ， 'replicate' ， 'circular'</p></li>
-</ol>
-<h4 id="参考网页">参考网页</h4>
-<p>Pytorch - <a href="https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html">CONV2D</a></p>
-<p>夏普通 - <a href="https://blog.csdn.net/qq_34243930/article/details/107231539">pytorch之torch.nn.Conv2d()函数详解</a></p>
-<h3 id="torch.nn.maxpool2d-函数"><code>torch.nn.MaxPool2d()</code>
-函数</h3>
-<p>MaxPool2d 函数可以实现最大池化层</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">torch.nn.MaxPool2d(kernel_size, stride=<span class="literal">None</span>, padding=<span class="number">0</span>, dilation=<span class="number">1</span>, return_indices=<span class="literal">False</span>, ceil_mode=<span class="literal">False</span>)</span><br></pre></td></tr></tbody></table></figure>
-<h4 id="部分参数解析-1">部分参数解析</h4>
-<ol type="1">
-<li><p>kernel_size</p>
-<p>int 或 tuple ，必选</p>
-<p>进行最大值池化的窗口大小</p></li>
-<li><p>stride</p>
-<p>int 或 tuple ，可选，默认与 kernel_size 参数相同</p>
-<p>最大值池化窗口的步长</p></li>
-<li><p>padding</p>
-<p>int 或 tuple ，可选，默认为 0</p>
-<p>填充边缘的宽度</p></li>
-</ol>
-<h4 id="参考网页-1">参考网页</h4>
-<p>PyTorch - <a href="https://pytorch.org/docs/stable/generated/torch.nn.MaxPool2d.html#torch.nn.MaxPool2d">MAXPOOL2D</a></p>
-<h3 id="torch.nn.linear-函数"><code>torch.nn.Linear()</code> 函数</h3>
-<p>Linear 函数可以实现全连接层，其本质上是线性层</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">torch.nn.Linear(in_features, out_features, bias=<span class="literal">True</span>, device=<span class="literal">None</span>, dtype=<span class="literal">None</span>)</span><br></pre></td></tr></tbody></table></figure>
-<h4 id="部分参数解析-2">部分参数解析</h4>
-<ol type="1">
-<li><p>in_features</p>
-<p>输入数据的维度</p></li>
-<li><p>out_features</p>
-<p>输出数据的维度</p></li>
-<li><p>bias</p>
-<p>bool ，默认为 True</p>
-<p>决定是否开启加法偏置</p></li>
-</ol>
-<h4 id="参考网页-2">参考网页</h4>
-<p>PyTorch - <a href="https://pytorch.org/docs/stable/generated/torch.nn.Linear.html?highlight=linear#torch.nn.Linear">LINEAR</a></p>
-<h3 id="pytorch-使用-gpu-训练">PyTorch 使用 GPU 训练</h3>
-<p>PyTorch 使用 GPU 训练时先需要</p>
-<ul>
-<li><p>单 GPU 训练时</p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">device = torch.device(<span class="string">"cuda:0"</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">"cpu"</span>)</span><br></pre></td></tr></tbody></table></figure><p></p></li>
-<li><p>多 GPU 训练时</p>
-<p>需要根据所需使用的 GPU ，在文件头部添加</p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">os.environ[<span class="string">'CUDA_VISIBLE_DEVICES'</span>] = <span class="string">"1, 2, 3"</span></span><br></pre></td></tr></tbody></table></figure><p></p>
-<p>使得当前代码仅对指定 GPU 可见，系统将会对指定 GPU
-从零开始重新编号</p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">device = torch.device(<span class="string">"cuda"</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">"cpu"</span>)</span><br></pre></td></tr></tbody></table></figure><p></p></li>
-<li><p>训练过程中</p>
-<p>需要将模型和张量计算都搬运到 GPU 上</p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">model.to(device)</span><br></pre></td></tr></tbody></table></figure><p></p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">inputs, targets = inputs.to(device), targets.to(device)</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+<li><p>采样层从点集中选择一些点作为中心点</p></li>
+<li><p>分组层寻找中心点周围的相邻点来构建局部单元</p></li>
+<li><p>PointNet 层使用 mini-PointNet 从局部单元中提取特征</p></li>
 </ul>
+<p>set abstraction 层级的输入是 <span class="math inline">\(N \times (d
++ C)\)</span> 的矩阵，输出是 <span class="math inline">\(N' \times
+(d' + C')\)</span> 的矩阵</p>
+<blockquote>
+<p>输入矩阵来自 $N $ 个具有 $ d $ 维坐标和 $ C$ 维特征的点 输出矩阵由
+$N' $ 个具有 $ d' $ 维坐标和 $ C'$ 维特征的点组成</p>
+</blockquote>
+<ol type="1">
+<li><p>采样层</p>
+<p>该层的输入是点集 <span class="math inline">\(\{x_1, x_2, ..., x_n
+\}\)</span> ，输出是子点集 <span class="math inline">\(\{x_{i_1},
+x_{i_2}, ..., x_{i_n} \}\)</span></p>
+<p>采样层使用最远采样法，从点集中选择几何距离较远的点作为子点集，子点集中的点即为中心点</p>
+<p>常用的几何距离有欧氏距离和测地距离</p>
+<p>选择初始点的方法有随机选取和选取距离点云重心的最远点</p>
+<p>最远采样法相比于随机采样，能够更好覆盖整个点集；相比于 CNN
+，最远采样法以一种依赖数据的方式生成感受野</p></li>
+<li><p>分组层</p>
+<p>该层的输入是整个点集构成的 <span class="math inline">\(N \times (d +
+C)\)</span> 矩阵和采样层输出的子点集的坐标构成的 <span class="math inline">\(N' \times d\)</span> 矩阵，输出是 <span class="math inline">\(N' \times K \times (d + C)\)</span> 的矩阵</p>
+<blockquote>
+<p>K 是中心点附近的点数，可以自适应调整</p>
+</blockquote>
+<p>分组层使用球状半径查询，从点集中寻找中心点半径范围内的 K 个点</p>
+<p>球状半径查询相比于 kNN 搜索，能够保证固定的区域尺度</p></li>
+<li><p>PointNet 层</p>
+<p>该层的输入是 <span class="math inline">\(N' \times K \times (d +
+C)\)</span> 矩阵，输出是 <span class="math inline">\(N' \times (d +
+C')\)</span> 的矩阵</p></li>
+</ol></li>
+<li><p>非均匀采样密度下的特征学习</p>
+<ol type="1">
+<li><p>多尺度分组</p>
+<p>对每个尺度的分组都送入 PointNet
+层进行特征提取，然后将特征连接起来作为中心点的特征</p>
+<p>计算成本很高</p></li>
+<li><p>多分辨率分组</p>
+<p>将大尺度的特征和送入 PointNet 层提取的小尺度特征进行拼接</p>
+<p>在密度较低的区域，自适应提升大尺度特征的权重</p>
+<p>在密度较高的区域，自适应提升送入 PointNet
+层提取的小尺度特征的权重</p></li>
+<li><p>随机丢弃输入数据</p>
+<p>在将数据输入进 PointNet 层之前进行 95% 的重新采样</p></li>
+</ol></li>
+<li><p>分割任务中点特征的传播</p>
+<p>在语义分割任务中，希望得到所有原始点的点特征</p>
+<ol type="1">
+<li><p>将所有的点都作为中心点进行采样分组</p>
+<p>计算成本很高</p></li>
+<li><p>将特征用内插特征值从子采样点传播到原始点</p>
+<p>内插特征值使用基于 k 近邻的反距离加权平均</p>
+<p>将内插的特征值与跳过的链接点特征相连接</p>
+<p><span class="math display">\[{f^{(i)}} = {\frac {\sum_{i=1}^{k}
+{w_{i}(x)} {f}_{i}^{(j)}} {\sum_{i=1}^{k}{w_{i}(x)}}} \quad where \quad
+{w}_{i}(x) = {\frac {1} {d(x, x_i)^p}}, j = 1, ..., C \qquad
+\tag{2}\]</span></p></li>
+</ol></li>
+</ol>
+<h3 id="experiments">Experiments</h3>
+<ol type="1">
+<li><p>数据集</p>
+<ol type="1">
+<li><p>MNIST</p>
+<p>70k 张二维图片，按 6:1 比例划分训练集和测试集</p></li>
+<li><p>ModelNet40</p>
+<p>40 类 12311 个 CAD 模型，按 4:1 比例划分训练集和测试集</p></li>
+<li><p>SHREC15</p>
+<p>50 类 1200 个 CAD 模型，每个类别包括 24
+种形状，使用五折交叉验证</p></li>
+<li><p>ScanNet</p>
+<p>1513 个室内扫描重建场景，按 4:1 比例划分训练集和测试集</p></li>
+</ol></li>
+<li><p>欧氏几何空间中的点集分类</p>
+<p>在 MNIST 和 ModelNet40 数据集中的表现明显优于 PointNet</p>
+<p>在模拟的不均匀数据集中，保持很好的性能</p></li>
+<li><p>场景语义分割</p>
+<p>对抽样密度变化具有稳健性</p></li>
+<li><p>非欧几何空间中的点集分类</p>
+<p>对每个模型构建由成对的测地线距离诱导的度量空间</p>
+<p>提取 WKS 、 HKS
+和多尺度高斯曲率等特征作为特征，而不是以三维坐标作为特征</p>
+<p>因为以三维坐标作为特征不能揭示内在结构，而且受姿势变化的影响很大</p></li>
+<li><p>特征可视化</p>
+<p>通过特征可视化可以看出 PointNet++ 学习到了物体的基本结构</p></li>
+</ol>
+<h3 id="conclusion">conclusion</h3>
+<p>改进方向：</p>
+<p>如何通过在每个局部区域分享更多的计算来加快网络的推理速度</p>
+<h2 id="复现结果">复现结果</h2>
+<p>代码源自 yanx27 - <a href="https://github.com/yanx27/Pointnet_Pointnet2_pytorch">PyTorch
+Implementation of PointNet and PointNet++</a></p>
+<p>输入如下指令开始训练 PointNet++ 分类模型</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">python train_classification.py --model pointnet2_cls_ssg --log_dir pointnet2_cls_ssg</span><br></pre></td></tr></tbody></table></figure>
+<p>训练最终结果</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">Epoch <span class="number">200</span> (<span class="number">200</span>/<span class="number">200</span>):</span><br><span class="line">Train Instance Accuracy: <span class="number">0.976626</span></span><br><span class="line">Test Instance Accuracy: <span class="number">0.920146</span>, Class Accuracy: <span class="number">0.890121</span></span><br><span class="line">Best Instance Accuracy: <span class="number">0.926133</span>, Class Accuracy: <span class="number">0.898150</span></span><br><span class="line">End of training...</span><br></pre></td></tr></tbody></table></figure>
+<p>输入如下指令开始测试 PointNet++ 分类模型</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">python test_classification.py --log_dir pointnet2_cls_ssg</span><br></pre></td></tr></tbody></table></figure>
+<p>测试最终结果</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">Test Instance Accuracy: <span class="number">0.927751</span>, Class Accuracy: <span class="number">0.896012</span></span><br></pre></td></tr></tbody></table></figure>
+<h2 id="参考文章">参考文章</h2>
+<p>刘昕宸 - <a href="https://zhuanlan.zhihu.com/p/266324173">搞懂
+PointNet++ ，这篇文章就够了！</a></p>
+<p>Guoguang Du - <a href="https://blog.csdn.net/dsoftware/article/details/107184116">最远点采样(Farthest
+Point Sampling)介绍</a></p>
+<h2 id="论文总结">论文总结</h2>
+<h3 id="pointnet-针对-pointnet-提出的改进">PointNet++ 针对 PointNet
+提出的改进</h3>
+<ol type="1">
+<li><p>PointNet
+只是提取点云中各个点的空间特征，然后聚合成全局信息。这样不能很好地提取局部结构信息</p>
+<p>PointNet++
+通过采样和分组将点集划分为不同的重叠区域，即整合局部邻域</p></li>
+<li><p>PointNet
+在聚合成全局信息时只使用了最大值池化。这样会损失大量信息</p>
+<p>PointNet++
+采用多层神经网络，对点集中的分组不断进行下采样，提取不同尺度下的
+local-global feature</p></li>
+<li><p>PointNet
+中的语义分割模型提取的中间特征是全局特征和局部特征拼接而成，特征的差异度不够</p>
+<p>PointNet++
+先进行下采样再进行上采样，使用跨级链接和内插特征值拼接对应层的
+local-global feature</p></li>
+</ol>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>学习</category>
+      </categories>
+      <tags>
+        <tag>CNN</tag>
+        <tag>点云</tag>
+        <tag>PointNet++</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>PyTorch 实现分类问题总结-续</title>
+    <url>/posts/49b59d4e.html</url>
+    <content><![CDATA[<h2 id="问题回顾">问题回顾</h2>
+<h3 id="多线程加载-dataset">多线程加载 Dataset</h3>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">dataset = TitanicDataset(<span class="string">"./dataset/titanic/processed_train.csv"</span>)</span><br><span class="line">train_loader = DataLoader(dataset=dataset, batch_size=<span class="number">32</span>, shuffle=<span class="literal">True</span>, num_workers=<span class="number">2</span>)</span><br></pre></td></tr></tbody></table></figure>
+<p>其中参数 num_works
+表示载入数据时使用的进程数，此时如果参数的值不为0而使用多进程时会出现报错</p>
+<blockquote>
+<p>RuntimeError: An attempt has been made to start a new process before
+the current process has finished its bootstrapping phase. This probably
+means that you are not using fork to start your child processes and you
+have forgotten to use the proper idiom in the main module: if
+<code>__name__ == '__main__':</code> freeze_support() ... The
+"<code>freeze_support()</code>" line can be omitted if the program is
+not going to be frozen to produce an executable.</p>
+</blockquote>
+<h4 id="解决方法">解决方法</h4>
+<p>当参数 num_works 不为 0 时，需要在数据调用前之前加上
+<code>if __name__ == '__main__':</code></p>
+<h4 id="参考网页">参考网页</h4>
+<p>diandianti - <a href="https://www.jianshu.com/p/4a1a92f0efd9">pytorch-Dataloader多进程使用出错</a></p>
+<h3 id="k-折交叉校验法">K 折交叉校验法</h3>
+<p>K 折交叉校验法是将训练集划分为 K 份子数据集，然后进行 K 轮训练，在第
+K 轮训练时，将第 K 份子数据集作为验证集来评估训练结果，最终会得到 K
+个结构相同，参数不同的网络，然后再从中选择评价最好模型</p>
+<p>在实际训练中可以将下列代码嵌入训练过程中</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">kfold = KFold(n_splits=k_folds, shuffle=<span class="literal">True</span>)</span><br><span class="line"><span class="keyword">for</span> fold, (train_ids, test_ids) <span class="keyword">in</span> <span class="built_in">enumerate</span>(kfold.split(train_dataset)):</span><br><span class="line">    train_subsampler = SubsetRandomSampler(train_ids)</span><br><span class="line">    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_subsampler)</span><br><span class="line">    test_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=test_subsampler)</span><br><span class="line">    <span class="comment"># training epoch</span></span><br></pre></td></tr></tbody></table></figure>
+<p>使得在每一折训练时，训练集和验证集能够变化</p>
+<h4 id="参考网页-1">参考网页</h4>
+<p>Jennie_J - <a href="https://blog.csdn.net/weixin_43685844/article/details/88635492">sklearn
+KFold()</a></p>
+<p>外部逍遥 - <a href="https://zhuanlan.zhihu.com/p/150446294">python
+sklearn中KFold与StratifiedKFold</a></p>
+<p>christianversloot - <a href="https://github.com/christianversloot/machine-learning-articles/blob/main/how-to-use-k-fold-cross-validation-with-pytorch.md">How
+to use K-fold Cross Validation with PyTorch?</a></p>
+<h3 id="归一化问题">归一化问题</h3>
+<h4 id="归一化与划分训练集和验证集顺序问题">归一化与划分训练集和验证集顺序问题</h4>
+<p>应当先进行训练集划分再进行归一化</p>
+<p>因为归一化实际上是从数据集中提取信息，而算法不应知道来自训练集以外信息，否则一定程度上会导致标签泄漏，造成训练结果出现偏差</p>
+<h4 id="参考网页-2">参考网页</h4>
+<p>PigOrz - <a href="https://blog.csdn.net/qq_33731081/article/details/103852478">【关于归一化与反归一化数据统一的问题】：训练集与测试集必须使用同一参数的归一化与反归一化</a></p>
+<p>lizju - <a href="https://blog.csdn.net/weixin_42227482/article/details/105829627">DataFrame的归一化</a></p>
+<p>Shian150629 - <a href="https://blog.csdn.net/weixin_43759518/article/details/113880715">标准化，归一化与训练-测试集数据处理</a></p>
+<h3 id="模型保存">模型保存</h3>
+<h4 id="保存加载模型参数">保存/加载模型参数</h4>
+<ol type="1">
+<li><p>保存</p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">torch.save(model.state_dict(), PATH)</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+<li><p>加载</p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">model = TheModelClass(*args, **kwargs)</span><br><span class="line">model.load_state_dict(torch.load(PATH))</span><br><span class="line">model.<span class="built_in">eval</span>()</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+</ol>
+<h4 id="保存加载整个模型">保存/加载整个模型</h4>
+<ol type="1">
+<li><p>保存</p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">torch.save(model, PATH)</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+<li><p>加载</p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="comment"># Model class must be defined somewhere</span></span><br><span class="line">model = torch.load(PATH)</span><br><span class="line">model.<span class="built_in">eval</span>()</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+</ol>
 <h4 id="参考网页-3">参考网页</h4>
-<p>hello_dear_you - <a href="https://blog.csdn.net/hello_dear_you/article/details/120190567">pytorch
-之多 GPU 训练</a></p>
-<h2 id="设计-loss-和优化器">设计 Loss 和优化器</h2>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">criterion = torch.nn.CrossEntropyLoss()</span><br><span class="line">optimizer = optim.SGD(model.parameters(), lr=<span class="number">0.01</span>, momentum=<span class="number">0.5</span>)</span><br></pre></td></tr></tbody></table></figure>
+<p>爱不持久 - <a href="https://blog.csdn.net/wacebb/article/details/108021921">Pytorch如何保存和加载模型参数</a></p>
+<p>机器学习入坑者 - <a href="https://zhuanlan.zhihu.com/p/94971100">一文梳理pytorch保存和重载模型参数攻略</a></p>
+<p>PyTorch - <a href="https://pytorch.org/tutorials/beginner/saving_loading_models.html">SAVING
+AND LOADING MODELS</a></p>
 ]]></content>
       <categories>
         <category>技术</category>
@@ -1544,251 +1394,148 @@ read_csv 函数</a></p>
       </tags>
   </entry>
   <entry>
-    <title>PyTorch 搭建 AlexNet 模型对 CIFAR10 数据集分类总结</title>
-    <url>/posts/3cbaf5b4.html</url>
-    <content><![CDATA[<h2 id="alexnet-网络模型搭建">AlexNet 网络模型搭建</h2>
-<p>根据 <a href="https://dl.acm.org/doi/abs/10.1145/3065386">ImageNet
-Classification with Deep Convolutional Neural Networks</a>
-论文中的文字描述和图标信息，可以得到 AlexNet 模型（忽略 batch_size
-）如下</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">layer_name</th>
-<th style="text-align: center;">out_size</th>
-<th style="text-align: center;">out_channel</th>
-<th style="text-align: center;">kernel_size</th>
-<th style="text-align: center;">padding</th>
-<th style="text-align: center;">stride</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;">Input</td>
-<td style="text-align: center;">224*224</td>
-<td style="text-align: center;">3</td>
-<td style="text-align: center;">None</td>
-<td style="text-align: center;">None</td>
-<td style="text-align: center;">None</td>
-</tr>
-<tr>
-<td style="text-align: center;">Conv1</td>
-<td style="text-align: center;">55*55</td>
-<td style="text-align: center;">96</td>
-<td style="text-align: center;">11</td>
-<td style="text-align: center;">2</td>
-<td style="text-align: center;">4</td>
-</tr>
-<tr>
-<td style="text-align: center;">Maxpool1</td>
-<td style="text-align: center;">27*27</td>
-<td style="text-align: center;">96</td>
-<td style="text-align: center;">3</td>
-<td style="text-align: center;">0</td>
-<td style="text-align: center;">2</td>
-</tr>
-<tr>
-<td style="text-align: center;">Conv2</td>
-<td style="text-align: center;">27*27</td>
-<td style="text-align: center;">256</td>
-<td style="text-align: center;">5</td>
-<td style="text-align: center;">2</td>
-<td style="text-align: center;">1</td>
-</tr>
-<tr>
-<td style="text-align: center;">Maxpool2</td>
-<td style="text-align: center;">13*13</td>
-<td style="text-align: center;">256</td>
-<td style="text-align: center;">3</td>
-<td style="text-align: center;">0</td>
-<td style="text-align: center;">2</td>
-</tr>
-<tr>
-<td style="text-align: center;">Conv3</td>
-<td style="text-align: center;">13*13</td>
-<td style="text-align: center;">384</td>
-<td style="text-align: center;">3</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">1</td>
-</tr>
-<tr>
-<td style="text-align: center;">Conv4</td>
-<td style="text-align: center;">13*13</td>
-<td style="text-align: center;">384</td>
-<td style="text-align: center;">3</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">1</td>
-</tr>
-<tr>
-<td style="text-align: center;">Conv5</td>
-<td style="text-align: center;">13*13</td>
-<td style="text-align: center;">256</td>
-<td style="text-align: center;">3</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">1</td>
-</tr>
-<tr>
-<td style="text-align: center;">Maxpool3</td>
-<td style="text-align: center;">6*6</td>
-<td style="text-align: center;">256</td>
-<td style="text-align: center;">3</td>
-<td style="text-align: center;">0</td>
-<td style="text-align: center;">2</td>
-</tr>
-<tr>
-<td style="text-align: center;">FC1</td>
-<td style="text-align: center;">4096</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">None</td>
-<td style="text-align: center;">None</td>
-<td style="text-align: center;">None</td>
-</tr>
-<tr>
-<td style="text-align: center;">FC2</td>
-<td style="text-align: center;">4096</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">None</td>
-<td style="text-align: center;">None</td>
-<td style="text-align: center;">None</td>
-</tr>
-<tr>
-<td style="text-align: center;">FC3</td>
-<td style="text-align: center;">1000</td>
-<td style="text-align: center;">1</td>
-<td style="text-align: center;">None</td>
-<td style="text-align: center;">None</td>
-<td style="text-align: center;">None</td>
-</tr>
-</tbody>
-</table>
-<p>据此可搭建网络模型</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">AlexNet_Paper</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, input_channel=<span class="number">3</span>, num_classes=<span class="number">1000</span></span>):</span><br><span class="line">        <span class="built_in">super</span>(AlexNet_Paper, <span class="variable language_">self</span>).__init__()</span><br><span class="line">        <span class="variable language_">self</span>.conv1 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=input_channel, out_channels=<span class="number">96</span>, kernel_size=<span class="number">11</span>, stride=<span class="number">4</span>, padding=<span class="number">2</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">3</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv2 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">96</span>, out_channels=<span class="number">256</span>, kernel_size=<span class="number">5</span>, padding=<span class="number">2</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">3</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv3 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">256</span>, out_channels=<span class="number">384</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv4 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">384</span>, out_channels=<span class="number">384</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv5 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">384</span>, out_channels=<span class="number">256</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">3</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc1 = nn.Sequential(</span><br><span class="line">            nn.Flatten(),</span><br><span class="line">            nn.Linear(<span class="number">6</span> * <span class="number">6</span> * <span class="number">256</span>, <span class="number">4096</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.Dropout(p=<span class="number">0.5</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc2 = nn.Sequential(</span><br><span class="line">            nn.Linear(<span class="number">4096</span>, <span class="number">4096</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.Dropout(p=<span class="number">0.5</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc3 = nn.Sequential(</span><br><span class="line">            nn.Linear(<span class="number">4096</span>, num_classes),</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        x = <span class="variable language_">self</span>.conv1(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv2(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv3(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv4(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv5(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc1(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc2(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc3(x)</span><br><span class="line">        <span class="keyword">return</span> x</span><br></pre></td></tr></tbody></table></figure>
-<h3 id="各层输出-size-计算">各层输出 size 计算</h3>
+    <title>PyTorch 实现基于 CNN 的图像分类总结</title>
+    <url>/posts/605ef827.html</url>
+    <content><![CDATA[<h2 id="数据集">数据集</h2>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> torchvision <span class="keyword">import</span> datasets, transforms</span><br><span class="line"></span><br><span class="line">batch_size = <span class="number">64</span></span><br><span class="line">transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((<span class="number">0.1307</span>,), (<span class="number">0.3081</span>,))])</span><br><span class="line"></span><br><span class="line">train_dataset = datasets.MNIST(root=<span class="string">"./dataset/mnist/"</span>, train=<span class="literal">True</span>, download=<span class="literal">True</span>, transform=transform)</span><br><span class="line">train_loader = DataLoader(train_dataset, shuffle=<span class="literal">True</span>, batch_size=batch_size)</span><br><span class="line"></span><br><span class="line">test_dataset = datasets.MNIST(root=<span class="string">"./dataset/mnist/"</span>, train=<span class="literal">False</span>, download=<span class="literal">True</span>, transform=transform)</span><br><span class="line">test_loader = DataLoader(test_dataset, shuffle=<span class="literal">False</span>, atch_size=batch_size)</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="torchvision.datasets">torchvision.datasets</h3>
+<p>torchvision.datasets 中包含了 <code>MNIST</code> 数据集</p>
+<p>通过 torchvision.datasets.MNIST 提供的 API
+可以下载、转换、加载数据集</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">datasets.MNIST(root, train=<span class="literal">True</span>, transform=<span class="literal">None</span>, target_transform=<span class="literal">None</span>, download=<span class="literal">False</span>)</span><br></pre></td></tr></tbody></table></figure>
+<h4 id="参数解析">参数解析</h4>
 <ol type="1">
-<li><p>Conv 层的输出 size 计算公式</p>
-<p>设输入 size 为 i * i ，卷积核 size 为 k * k ，步长为 s ，边缘填充为 p
-，输出 size 为 o * o</p>
-<p><span class="math display">\[o =
-\frac{i-k+2*p}{s}+1\]</span></p></li>
-<li><p>Maxpool 层的 size 计算公式</p>
-<p>设输入 size 为 i * i ，池化核 size 为 k * k ，步长为 s ，输出 size 为
-o * o</p>
-<p><span class="math display">\[o = \frac{i-k}{s}+1\]</span></p></li>
+<li><p>root</p>
+<p>str ，数据集路径对象</p>
+<p>用于储存 <code>processed/training.pt</code> 和
+<code>processed/test.pt</code></p></li>
+<li><p>train</p>
+<p>bool ，可选</p>
+<ul>
+<li>当 train 参数为 True 时，载入的数据集为训练集</li>
+<li>当 train 参数为 False 时，载入的数据集为测试集</li>
+</ul></li>
+<li><p>download</p>
+<p>bool ，可选</p>
+<ul>
+<li><p>当 download 参数为 True 且未下载过该数据时，将从 <a href="http://yann.lecun.com/exdb/mnist/" class="uri">http://yann.lecun.com/exdb/mnist/</a> 下载数据集并将其放在
+root 参数指定路径下</p></li>
+<li><p>如果 download 参数为 True 且下载过该数据，则不会再次下载</p></li>
+</ul></li>
+<li><p>transform</p>
+<p>可调用对象，可选</p>
+<p>接收 PIL
+映像并返回转换版本的函数/变换。例如:transforms.RandomCrop</p></li>
+<li><p>target_transform</p>
+<p>可调用对象，可选</p>
+<p>一个接收目标并转换它的函数/变换。</p>
+<p>transform (callable, optional): A function/transform that takes in an
+PIL image and returns a transformed version. E.g, transforms.RandomCrop
+target_transform (callable, optional): A function/transform that takes
+in the target and transforms it.</p></li>
 </ol>
-<h4 id="alexnet-输入-size-问题">AlexNet 输入 size 问题</h4>
-<p>AlexNet 输入的图像 size 在论文中多处均描述为 224*224 ，Maxpool1
-层输入的 size 在论文 Figure2 中描述为 55*55</p>
-<figure>
-<img data-src="https://s2.loli.net/2022/09/13/9AwGtkcOUJd8X2p.png" alt="image.png">
-<figcaption aria-hidden="true">image.png</figcaption>
-</figure>
-<blockquote>
-<p>The first convolutional layer filters the 224×224×3 input image with
-96 kernels of size 11×11×3 with a stride of 4 pixels (this is the
-distance between the receptive field centers of neighboring neurons in a
-kernel map).</p>
-</blockquote>
-<p>当将论文中的数据带入计算后发现经过 Conv1 层输出的 size 与 Maxpool1
-层输入的 size 有冲突</p>
-<p><span class="math display">\[o = \frac{i-k+2*p}{s} +1 =
-\frac{224-11}{4} +1 = 54.25 \approx 54\]</span></p>
-<p>即 Conv1 层输出的 size为 54*54 ，而 Maxpool1 层输入的 size 为
-55*55</p>
-<p>若 AlexNet 输入的图像 size 改为 227*227 ，则可得到 Maxpool1
-层所需要的输入 size</p>
-<p><span class="math display">\[o = \frac{i-k+2*p}{s} +1 =
-\frac{227-11}{4} +1 = 55\]</span></p>
-<p>然后在 Pytorch 的 model 库中发现 Conv1 层还应用了 padding</p>
-<p><span class="math display">\[o = \frac{i-k+2*p}{s} +1 =
-\frac{224-11+2*2}{4} +1 = 55.25 \approx 55\]</span></p>
-<p>最终搭建模型时输入 size 采用 224*224</p>
-<h4 id="参考网页">参考网页</h4>
-<p>一抹青竹 - <a href="https://www.bilibili.com/read/cv7181322/">较真AlexNet：到底是224还是227？</a></p>
-<p>ZJE_ANDY - <a href="https://blog.csdn.net/u014453898/article/details/85126733">图像卷积和池化操作后的特征图大小计算方法</a></p>
-<p>GitHub - <a href="https://github.com/pytorch/vision/blob/main/torchvision/models/alexnet.py">torchvision/models/AlexNet.py</a></p>
-<h3 id="flatten-层">Flatten 层</h3>
-<p>Conv5 层输出的 size 为 6*6*256 ，而 FC1
-层所需输入要求是一维的，因此需要使用 Flatten 将三维数据压缩成一维</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">nn.Flatten()</span><br></pre></td></tr></tbody></table></figure>
-<h3 id="针对-cifar10-数据集的修改">针对 CIFAR10 数据集的修改</h3>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">AlexNet_CIFAR10</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">super</span>(AlexNet_CIFAR10, <span class="variable language_">self</span>).__init__()</span><br><span class="line">        <span class="variable language_">self</span>.conv1 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">3</span>, out_channels=<span class="number">64</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">2</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv2 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">64</span>, out_channels=<span class="number">256</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">2</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv3 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">256</span>, out_channels=<span class="number">384</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv4 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">384</span>, out_channels=<span class="number">256</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv5 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">256</span>, out_channels=<span class="number">256</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">2</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc1 = nn.Sequential(</span><br><span class="line">            nn.Flatten(),</span><br><span class="line">            nn.Linear(<span class="number">4</span> * <span class="number">4</span> * <span class="number">256</span>, <span class="number">4096</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.Dropout(p=<span class="number">0.5</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc2 = nn.Sequential(</span><br><span class="line">            nn.Linear(<span class="number">4096</span>, <span class="number">4096</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.Dropout(p=<span class="number">0.5</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc3 = nn.Sequential(</span><br><span class="line">            nn.Linear(<span class="number">4096</span>, <span class="number">10</span>),</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        x = <span class="variable language_">self</span>.conv1(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv2(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv3(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv4(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv5(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc1(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc2(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc3(x)</span><br><span class="line">        <span class="keyword">return</span> x</span><br></pre></td></tr></tbody></table></figure>
-<h2 id="模型训练">模型训练</h2>
-<h3 id="准备数据集">准备数据集</h3>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">ROOT_DIR = os.getcwd()</span><br><span class="line">DATASET_DIR = os.path.join(ROOT_DIR, <span class="string">"dataset"</span>, <span class="string">"CIFAR10"</span>)</span><br><span class="line"></span><br><span class="line">transform = T.Compose(</span><br><span class="line">  [</span><br><span class="line">      T.ToTensor(),</span><br><span class="line">      T.Normalize((<span class="number">0.5</span>, <span class="number">0.5</span>, <span class="number">0.5</span>), (<span class="number">0.5</span>, <span class="number">0.5</span>, <span class="number">0.5</span>)),</span><br><span class="line">  ]</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">train_dataset = datasets.CIFAR10(root=DATASET_DIR, train=<span class="literal">True</span>, download=<span class="literal">True</span>, transform=transform)</span><br><span class="line">test_dataset = datasets.CIFAR10(root=DATASET_DIR, train=<span class="literal">False</span>, download=<span class="literal">True</span>, transform=transform)</span><br><span class="line"></span><br><span class="line">train_size = <span class="built_in">int</span>(<span class="number">0.8</span> * <span class="built_in">len</span>(train_dataset))</span><br><span class="line">eval_size = <span class="built_in">len</span>(train_dataset) - train_size</span><br><span class="line">test_size = <span class="built_in">len</span>(test_dataset)</span><br><span class="line"></span><br><span class="line">train_dataset, eval_dataset = random_split(train_dataset, [train_size, eval_size])</span><br><span class="line">train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=<span class="literal">True</span>, num_workers=<span class="number">2</span>, pin_memory=<span class="literal">True</span>)</span><br><span class="line">eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=<span class="literal">True</span>, num_workers=<span class="number">2</span>, pin_memory=<span class="literal">True</span>)</span><br><span class="line">test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=<span class="literal">True</span>, num_workers=<span class="number">2</span>, pin_memory=<span class="literal">True</span>)</span><br></pre></td></tr></tbody></table></figure>
-<h4 id="计算数据集均值和方差">计算数据集均值和方差</h4>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">get_CIFAR10_mean_std</span>(<span class="params">dataset_dir</span>):</span><br><span class="line">    train_dataset = datasets.CIFAR10(root=dataset_dir, train=<span class="literal">True</span>, download=<span class="literal">True</span>, transform=T.ToTensor())</span><br><span class="line">    train_loader = DataLoader(dataset=train_dataset, batch_size=<span class="number">64</span>, shuffle=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">    channels_sum, channels_squared_sum, num_batches = <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> data, _ <span class="keyword">in</span> train_loader:  <span class="comment"># 批量*通道*高*宽</span></span><br><span class="line">        channels_sum += torch.mean(data, dim=[<span class="number">0</span>, <span class="number">2</span>, <span class="number">3</span>])  <span class="comment"># 剩下通道这个维度</span></span><br><span class="line">        channels_squared_sum += torch.mean(data**<span class="number">2</span>, dim=[<span class="number">0</span>, <span class="number">2</span>, <span class="number">3</span>])</span><br><span class="line">        num_batches += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    mean = channels_sum / num_batches</span><br><span class="line">    std = (channels_squared_sum / num_batches - mean**<span class="number">2</span>) ** <span class="number">0.5</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> mean, std</span><br></pre></td></tr></tbody></table></figure>
-<p>通过自定义函数来计算数据集均值和方差，可以自适应的对数据集进行归一化</p>
-<h4 id="划分验证集">划分验证集</h4>
-<p>在本次实验中为了观察训练过程中的模型训练效果，从训练集中划分出了验证集</p>
-<p><code>random_split()</code> 函数可以将输入的 Dataset 划分为输入 list
-中各元素长度的子 Dataset</p>
-<h3 id="网络模型实例化">网络模型实例化</h3>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">model = AlexNet_CIFAR10()</span><br><span class="line">device = torch.device(<span class="string">"cuda:0"</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">"cpu"</span>)</span><br><span class="line">model.to(device)</span><br></pre></td></tr></tbody></table></figure>
-<h3 id="设计-loss-和优化器">设计 Loss 和优化器</h3>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">criterion = torch.nn.CrossEntropyLoss()</span><br><span class="line">optimizer = optim.SGD(model.parameters(), lr=<span class="number">0.01</span>, momentum=<span class="number">0.9</span>)</span><br></pre></td></tr></tbody></table></figure>
-<h3 id="训练过程">训练过程</h3>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">train_loss, train_acc, eval_loss, eval_acc = [], [], [], []</span><br><span class="line"><span class="keyword">for</span> epoch <span class="keyword">in</span> tqdm(<span class="built_in">range</span>(args.num_epochs)):</span><br><span class="line"></span><br><span class="line">    training_epoch_loss, training_epoch_acc = <span class="number">0.0</span>, <span class="number">0.0</span></span><br><span class="line">    training_temp_loss, training_temp_correct = <span class="number">0</span>, <span class="number">0</span></span><br><span class="line">    model.train()</span><br><span class="line">    <span class="keyword">for</span> batch_idx, data <span class="keyword">in</span> <span class="built_in">enumerate</span>(train_loader, start=<span class="number">0</span>):</span><br><span class="line"></span><br><span class="line">        inputs, targets = data</span><br><span class="line">        <span class="keyword">if</span> args.gpu:</span><br><span class="line">            inputs, targets = inputs.to(device), targets.to(device)</span><br><span class="line">        optimizer.zero_grad()</span><br><span class="line"></span><br><span class="line">        outputs = model(inputs)</span><br><span class="line">        loss = criterion(outputs, targets)</span><br><span class="line">        loss.backward()</span><br><span class="line">        optimizer.step()</span><br><span class="line"></span><br><span class="line">        training_temp_loss += loss.item()</span><br><span class="line">        predicted = torch.argmax(outputs.data, dim=<span class="number">1</span>)</span><br><span class="line">        training_temp_correct += (predicted == targets).<span class="built_in">sum</span>().item()</span><br><span class="line"></span><br><span class="line">    training_epoch_loss = training_temp_loss / batch_idx</span><br><span class="line">    training_epoch_acc = <span class="number">100</span> * training_temp_correct / train_size</span><br><span class="line"></span><br><span class="line">    train_loss.append(training_epoch_loss)</span><br><span class="line">    train_acc.append(training_epoch_acc)</span><br><span class="line"></span><br><span class="line">    evaling_epoch_loss, evaling_epoch_acc = <span class="number">0.0</span>, <span class="number">0.0</span></span><br><span class="line">    evaling_temp_loss, evaling_temp_correct = <span class="number">0</span>, <span class="number">0</span></span><br><span class="line">    model.<span class="built_in">eval</span>()</span><br><span class="line">    <span class="keyword">with</span> torch.no_grad():</span><br><span class="line">        <span class="keyword">for</span> batch_idx, data <span class="keyword">in</span> <span class="built_in">enumerate</span>(eval_loader, start=<span class="number">0</span>):</span><br><span class="line">            inputs, targets = data</span><br><span class="line">            <span class="keyword">if</span> args.gpu:</span><br><span class="line">                inputs, targets = inputs.to(device), targets.to(device)</span><br><span class="line"></span><br><span class="line">            outputs = model(inputs)</span><br><span class="line">            loss = criterion(outputs, targets)</span><br><span class="line"></span><br><span class="line">            evaling_temp_loss += loss.item()</span><br><span class="line">            predicted = torch.argmax(outputs.data, dim=<span class="number">1</span>)</span><br><span class="line">            evaling_temp_correct += (predicted == targets).<span class="built_in">sum</span>().item()</span><br><span class="line"></span><br><span class="line">    evaling_epoch_loss = evaling_temp_loss / batch_idx</span><br><span class="line">    evaling_epoch_acc = <span class="number">100</span> * evaling_temp_correct / eval_size</span><br><span class="line"></span><br><span class="line">    eval_loss.append(evaling_epoch_loss)</span><br><span class="line">    eval_acc.append(evaling_epoch_acc)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(</span><br><span class="line">        <span class="string">"[Epoch {:3d}] train_loss: {:.3f} train_acc: {:.3f}% eval_loss: {:.3f} eval_acc: {:.3f}%"</span>.<span class="built_in">format</span>(</span><br><span class="line">            epoch + <span class="number">1</span>, training_epoch_loss, training_epoch_acc, evaling_epoch_loss, evaling_epoch_acc</span><br><span class="line">        )</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">"Training process has finished. Saving trained model."</span>)</span><br><span class="line">SAVE_DIR = <span class="string">"./AlexNet_CIFAR10.pth"</span></span><br><span class="line">torch.save(model.state_dict(), SAVE_DIR)</span><br></pre></td></tr></tbody></table></figure>
-<h4 id="验证过程">验证过程</h4>
+<h3 id="torchvision.transforms">torchvision.transforms</h3>
+<p>torchvision.transforms 可以实现对图像的变化</p>
+<h4 id="torchvision.transforms.composetransforms">torchvision.transforms.Compose(transforms)</h4>
+<p>Compose 函数可以实现不同变化的组合</p>
+<h4 id="torchvision.transforms.totensor">torchvision.transforms.ToTensor()</h4>
+<p>ToTensor 函数可以将图像的多通道矩阵转换为张量形式，方便后续计算</p>
+<h4 id="torchvision.transforms.nomalizemean-std-inplace">torchvision.transforms.Nomalize(mean,
+std[, inplace])</h4>
+<p>Normalize 函数可以用均值和标准差对张量图像进行归一化</p>
+<h5 id="mnist-数据集的均值和标准差">MNIST 数据集的均值和标准差</h5>
+<p>MNIST 数据集的均值为 0.1307 ， 标准差为 0.3081</p>
+<h2 id="网络设计">网络设计</h2>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Net</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">super</span>(Net, <span class="variable language_">self</span>).__init__()</span><br><span class="line">        <span class="variable language_">self</span>.conv1 = nn.Conv2d(<span class="number">1</span>, <span class="number">10</span>, kernel_size=<span class="number">5</span>)</span><br><span class="line">        <span class="variable language_">self</span>.conv2 = nn.Conv2d(<span class="number">10</span>, <span class="number">20</span>, kernel_size=<span class="number">5</span>)</span><br><span class="line">        <span class="variable language_">self</span>.pooling = nn.MaxPool2d(<span class="number">2</span>)</span><br><span class="line">        <span class="variable language_">self</span>.fc = nn.Linear(<span class="number">320</span>, <span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        <span class="comment"># Flatten data from (n, 1, 28, 28) to (n, 784)</span></span><br><span class="line">        batch_size = x.size(<span class="number">0</span>)</span><br><span class="line">        x = F.relu(<span class="variable language_">self</span>.pooling(<span class="variable language_">self</span>.conv1(x)))</span><br><span class="line">        x = F.relu(<span class="variable language_">self</span>.pooling(<span class="variable language_">self</span>.conv2(x)))</span><br><span class="line">        x = x.view(batch_size, -<span class="number">1</span>)  <span class="comment"># flatten</span></span><br><span class="line">        x = <span class="variable language_">self</span>.fc(x)</span><br><span class="line">        <span class="keyword">return</span> x</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">model = Net()</span><br><span class="line">device = torch.device(<span class="string">"cuda:0"</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">"cpu"</span>)</span><br><span class="line">model.to(device)</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="torch.nn.conv2d-函数"><code>torch.nn.Conv2d()</code> 函数</h3>
+<p>Conv2d 函数可以实现卷积层</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride=<span class="number">1</span>, padding=<span class="number">0</span>, dilation=<span class="number">1</span>, groups=<span class="number">1</span>, bias=<span class="literal">True</span>, padding_mode=<span class="string">'zeros'</span>, device=<span class="literal">None</span>, dtype=<span class="literal">None</span>)</span><br></pre></td></tr></tbody></table></figure>
+<h4 id="部分参数解析">部分参数解析</h4>
 <ol type="1">
-<li><p>模型模式切换</p>
-<p>在对验证集进行验证时，需要将网络模型 Dropout
-层禁用，这时候就需要如下代码将模型切换到分析模式</p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">model.<span class="built_in">eval</span>()</span><br></pre></td></tr></tbody></table></figure><p></p>
-<p>而再次进行训练时，需要启用 Dropout
-层，这时需要如下代码将模型切换到训练模式</p>
-<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">model.train()</span><br></pre></td></tr></tbody></table></figure><p></p></li>
-<li><p>停止计算图的构建</p>
-<p>在验证过程和测试过程中，由于只需要网络模型的结果，而不需要生成计算图，可以使用
-<code>with torch.no_grad()</code> 节约运算资源</p></li>
+<li><p>in_channels</p>
+<p>int ，必选</p>
+<p>输入的通道数</p></li>
+<li><p>out_channels</p>
+<p>int ，必选</p>
+<p>输出的通道数</p></li>
+<li><p>kernel_size</p>
+<p>int 或 tuple ，必选</p>
+<p>卷积核的尺寸</p></li>
+<li><p>stride</p>
+<p>int 或 tuple ，可选，默认为 1</p>
+<p>卷积时的步长</p></li>
+<li><p>padding</p>
+<p>int 或 tuple ，可选，默认为 0</p>
+<p>填充边缘的宽度</p></li>
+<li><p>dilation</p>
+<p>int 或 tuple ，可选，默认为 1</p>
+<p>卷积核中各元素的间距</p></li>
+<li><p>padding_mode</p>
+<p>str ，可选，默认为 'zeros'</p>
+<p>选择填充模式</p>
+<p>可选 'zeros' ， 'reflect' ， 'replicate' ， 'circular'</p></li>
+</ol>
+<h4 id="参考网页">参考网页</h4>
+<p>Pytorch - <a href="https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html">CONV2D</a></p>
+<p>夏普通 - <a href="https://blog.csdn.net/qq_34243930/article/details/107231539">pytorch之torch.nn.Conv2d()函数详解</a></p>
+<h3 id="torch.nn.maxpool2d-函数"><code>torch.nn.MaxPool2d()</code>
+函数</h3>
+<p>MaxPool2d 函数可以实现最大池化层</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">torch.nn.MaxPool2d(kernel_size, stride=<span class="literal">None</span>, padding=<span class="number">0</span>, dilation=<span class="number">1</span>, return_indices=<span class="literal">False</span>, ceil_mode=<span class="literal">False</span>)</span><br></pre></td></tr></tbody></table></figure>
+<h4 id="部分参数解析-1">部分参数解析</h4>
+<ol type="1">
+<li><p>kernel_size</p>
+<p>int 或 tuple ，必选</p>
+<p>进行最大值池化的窗口大小</p></li>
+<li><p>stride</p>
+<p>int 或 tuple ，可选，默认与 kernel_size 参数相同</p>
+<p>最大值池化窗口的步长</p></li>
+<li><p>padding</p>
+<p>int 或 tuple ，可选，默认为 0</p>
+<p>填充边缘的宽度</p></li>
 </ol>
 <h4 id="参考网页-1">参考网页</h4>
-<p>未来达摩大师 - <a href="https://zhuanlan.zhihu.com/p/494060986">【PyTorch】搞定网络训练中的model.train()和model.eval()模式</a></p>
-<p>失之毫厘，差之千里 - <a href="https://blog.csdn.net/qq_42251157/article/details/124101436">with
-torch.no_grad() 详解</a></p>
-<h3 id="保存模型">保存模型</h3>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">print</span>(<span class="string">"Training process has finished. Saving trained model."</span>)</span><br><span class="line">SAVE_DIR = <span class="string">"./AlexNet_CIFAR10.pth"</span></span><br><span class="line">torch.save(model.state_dict(), SAVE_DIR)</span><br></pre></td></tr></tbody></table></figure>
-<h3 id="测试过程">测试过程</h3>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">print</span>(<span class="string">"------Starting testing------"</span>)</span><br><span class="line">testing_temp_loss, testing_temp_correct = <span class="number">0</span>, <span class="number">0</span></span><br><span class="line">model.<span class="built_in">eval</span>()</span><br><span class="line"><span class="keyword">with</span> torch.no_grad():</span><br><span class="line">  <span class="keyword">for</span> batch_idx, data <span class="keyword">in</span> tqdm(<span class="built_in">enumerate</span>(test_loader, start=<span class="number">0</span>)):</span><br><span class="line">      inputs, targets = data</span><br><span class="line">      <span class="keyword">if</span> args.gpu:</span><br><span class="line">          inputs, targets = inputs.to(device), targets.to(device)</span><br><span class="line"></span><br><span class="line">      outputs = model(inputs)</span><br><span class="line">      loss = criterion(outputs, targets)</span><br><span class="line"></span><br><span class="line">      testing_temp_loss += loss.item()</span><br><span class="line">      predicted = torch.argmax(outputs.data, dim=<span class="number">1</span>)</span><br><span class="line">      testing_temp_correct += (predicted == targets).<span class="built_in">sum</span>().item()</span><br><span class="line"></span><br><span class="line">testing_loss = testing_temp_loss / batch_idx</span><br><span class="line">testing_acc = <span class="number">100</span> * testing_temp_correct / test_size</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">"[Test     ] loss: {:.3f} acc: {:.3f}%%"</span>.<span class="built_in">format</span>(testing_loss, testing_acc))</span><br></pre></td></tr></tbody></table></figure>
-<h3 id="绘制图表">绘制图表</h3>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">fig, ax = plt.subplots()</span><br><span class="line">ax.plot(np.arange(args.num_epochs), train_loss, np.arange(args.num_epochs), eval_loss)</span><br><span class="line">ax.set_xlabel(<span class="string">"Epoch"</span>)</span><br><span class="line">ax.set_ylabel(<span class="string">"Loss"</span>)</span><br><span class="line">ax.legend([<span class="string">"train_loss"</span>, <span class="string">"eval_loss"</span>])</span><br><span class="line">plt.show()</span><br><span class="line"></span><br><span class="line">fig, ax = plt.subplots()</span><br><span class="line">ax.plot(np.arange(args.num_epochs), train_acc, np.arange(args.num_epochs), eval_acc)</span><br><span class="line">ax.set_xlabel(<span class="string">"Epoch"</span>)</span><br><span class="line">ax.set_ylabel(<span class="string">"acc"</span>)</span><br><span class="line">ax.legend([<span class="string">"train_acc"</span>, <span class="string">"eval_acc"</span>])</span><br><span class="line">plt.show()</span><br></pre></td></tr></tbody></table></figure>
-<h3 id="softmax">softmax</h3>
-<p>在构建网络的时候，由于没有考虑到交叉熵损失函数中已经包含了 Softmax
-函数，而在模型的末尾加入了 Softmax 层，导致网络模型不能正常收敛</p>
-<figure>
-<img data-src="https://s2.loli.net/2022/09/14/uCjMp1lHcwJ5PsB.png" alt="Softmax acc-Epoch">
-<figcaption aria-hidden="true">Softmax acc-Epoch</figcaption>
-</figure>
-<figure>
-<img data-src="https://s2.loli.net/2022/09/14/on4mcODhAWF8Ygu.png" alt="Softmax Loss-Epoch">
-<figcaption aria-hidden="true">Softmax Loss-Epoch</figcaption>
-</figure>
-<blockquote>
-<p><code>Torch.nn.CrossEntropyLoss()</code> 函数是先将输出结果输入到
-Softmax 层后取对数，再应用 NLLLoss 即
-<code>Torch.nn.CrossEntropyLoss()</code> = LogSoftmax + NLLLoss</p>
-</blockquote>
-<p>将模型最后的 Softmax 层去掉网络就可正常收敛了</p>
-<p>在此处把警钟敲烂，要和 GPU 一起检查</p>
-<h3 id="参考网页-2">参考网页</h3>
-<p>爱学英语的程序媛 - <a href="https://www.cnblogs.com/Bella2017/p/11791216.html">Pytorch划分数据集的方法</a></p>
-<p>Wabi―sabi - <a href="https://blog.csdn.net/qq_53640005/article/details/115434295">AlexNet网络对CIFAR10分类——torch实现</a></p>
-<p>故你， - <a href="https://blog.csdn.net/Myshrry/article/details/123853892">[pytorch]
-利用Alexnet训练cifar10</a></p>
-<h2 id="argparse-库">argparse 库</h2>
-<p>argparse 可以给 Python 脚本传入参数</p>
-<p>使用时需要先导入库</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> argparse</span><br></pre></td></tr></tbody></table></figure>
-<p>然后实例化参数容器</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">parser = argparse.ArgumentParser()</span><br></pre></td></tr></tbody></table></figure>
-<p>最后逐一添加所需参数（及其默认值）</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">parser.add_argument(<span class="string">"--gpu"</span>, action=<span class="string">"store_true"</span>, default=<span class="literal">True</span>, <span class="built_in">help</span>=<span class="string">"use gpu mode"</span>)</span><br><span class="line">parser.add_argument(<span class="string">"--batch_size"</span>, <span class="built_in">type</span>=<span class="built_in">int</span>, default=<span class="number">32</span>, <span class="built_in">help</span>=<span class="string">"batch size in training"</span>)</span><br><span class="line">parser.add_argument(<span class="string">"--num_epochs"</span>, <span class="built_in">type</span>=<span class="built_in">int</span>, default=<span class="number">20</span>, <span class="built_in">help</span>=<span class="string">"epochs in training"</span>)</span><br></pre></td></tr></tbody></table></figure>
-<p>后续代码只需要调用 parser 的对应成员即可</p>
-<h3 id="参考网页-3">参考网页</h3>
-<p>Fan19zju - <a href="https://blog.csdn.net/Fan19zju/article/details/118570720">argparse库教程（超易懂）</a></p>
+<p>PyTorch - <a href="https://pytorch.org/docs/stable/generated/torch.nn.MaxPool2d.html#torch.nn.MaxPool2d">MAXPOOL2D</a></p>
+<h3 id="torch.nn.linear-函数"><code>torch.nn.Linear()</code> 函数</h3>
+<p>Linear 函数可以实现全连接层，其本质上是线性层</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">torch.nn.Linear(in_features, out_features, bias=<span class="literal">True</span>, device=<span class="literal">None</span>, dtype=<span class="literal">None</span>)</span><br></pre></td></tr></tbody></table></figure>
+<h4 id="部分参数解析-2">部分参数解析</h4>
+<ol type="1">
+<li><p>in_features</p>
+<p>输入数据的维度</p></li>
+<li><p>out_features</p>
+<p>输出数据的维度</p></li>
+<li><p>bias</p>
+<p>bool ，默认为 True</p>
+<p>决定是否开启加法偏置</p></li>
+</ol>
+<h4 id="参考网页-2">参考网页</h4>
+<p>PyTorch - <a href="https://pytorch.org/docs/stable/generated/torch.nn.Linear.html?highlight=linear#torch.nn.Linear">LINEAR</a></p>
+<h3 id="pytorch-使用-gpu-训练">PyTorch 使用 GPU 训练</h3>
+<p>PyTorch 使用 GPU 训练时先需要</p>
+<ul>
+<li><p>单 GPU 训练时</p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">device = torch.device(<span class="string">"cuda:0"</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">"cpu"</span>)</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+<li><p>多 GPU 训练时</p>
+<p>需要根据所需使用的 GPU ，在文件头部添加</p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">os.environ[<span class="string">'CUDA_VISIBLE_DEVICES'</span>] = <span class="string">"1, 2, 3"</span></span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>使得当前代码仅对指定 GPU 可见，系统将会对指定 GPU
+从零开始重新编号</p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">device = torch.device(<span class="string">"cuda"</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">"cpu"</span>)</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+<li><p>训练过程中</p>
+<p>需要将模型和张量计算都搬运到 GPU 上</p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">model.to(device)</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">inputs, targets = inputs.to(device), targets.to(device)</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+</ul>
+<h4 id="参考网页-3">参考网页</h4>
+<p>hello_dear_you - <a href="https://blog.csdn.net/hello_dear_you/article/details/120190567">pytorch
+之多 GPU 训练</a></p>
+<h2 id="设计-loss-和优化器">设计 Loss 和优化器</h2>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">criterion = torch.nn.CrossEntropyLoss()</span><br><span class="line">optimizer = optim.SGD(model.parameters(), lr=<span class="number">0.01</span>, momentum=<span class="number">0.5</span>)</span><br></pre></td></tr></tbody></table></figure>
 ]]></content>
       <categories>
         <category>技术</category>
-        <category>学习</category>
+        <category>Python</category>
       </categories>
       <tags>
         <tag>CNN</tag>
@@ -2210,6 +1957,259 @@ CODE FOR TORCHVISION.MODELS.DENSENET</a></p>
       </tags>
   </entry>
   <entry>
+    <title>PyTorch 搭建 AlexNet 模型对 CIFAR10 数据集分类总结</title>
+    <url>/posts/3cbaf5b4.html</url>
+    <content><![CDATA[<h2 id="alexnet-网络模型搭建">AlexNet 网络模型搭建</h2>
+<p>根据 <a href="https://dl.acm.org/doi/abs/10.1145/3065386">ImageNet
+Classification with Deep Convolutional Neural Networks</a>
+论文中的文字描述和图标信息，可以得到 AlexNet 模型（忽略 batch_size
+）如下</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">layer_name</th>
+<th style="text-align: center;">out_size</th>
+<th style="text-align: center;">out_channel</th>
+<th style="text-align: center;">kernel_size</th>
+<th style="text-align: center;">padding</th>
+<th style="text-align: center;">stride</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">Input</td>
+<td style="text-align: center;">224*224</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">None</td>
+<td style="text-align: center;">None</td>
+<td style="text-align: center;">None</td>
+</tr>
+<tr>
+<td style="text-align: center;">Conv1</td>
+<td style="text-align: center;">55*55</td>
+<td style="text-align: center;">96</td>
+<td style="text-align: center;">11</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">4</td>
+</tr>
+<tr>
+<td style="text-align: center;">Maxpool1</td>
+<td style="text-align: center;">27*27</td>
+<td style="text-align: center;">96</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">2</td>
+</tr>
+<tr>
+<td style="text-align: center;">Conv2</td>
+<td style="text-align: center;">27*27</td>
+<td style="text-align: center;">256</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr>
+<td style="text-align: center;">Maxpool2</td>
+<td style="text-align: center;">13*13</td>
+<td style="text-align: center;">256</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">2</td>
+</tr>
+<tr>
+<td style="text-align: center;">Conv3</td>
+<td style="text-align: center;">13*13</td>
+<td style="text-align: center;">384</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr>
+<td style="text-align: center;">Conv4</td>
+<td style="text-align: center;">13*13</td>
+<td style="text-align: center;">384</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr>
+<td style="text-align: center;">Conv5</td>
+<td style="text-align: center;">13*13</td>
+<td style="text-align: center;">256</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr>
+<td style="text-align: center;">Maxpool3</td>
+<td style="text-align: center;">6*6</td>
+<td style="text-align: center;">256</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">2</td>
+</tr>
+<tr>
+<td style="text-align: center;">FC1</td>
+<td style="text-align: center;">4096</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">None</td>
+<td style="text-align: center;">None</td>
+<td style="text-align: center;">None</td>
+</tr>
+<tr>
+<td style="text-align: center;">FC2</td>
+<td style="text-align: center;">4096</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">None</td>
+<td style="text-align: center;">None</td>
+<td style="text-align: center;">None</td>
+</tr>
+<tr>
+<td style="text-align: center;">FC3</td>
+<td style="text-align: center;">1000</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">None</td>
+<td style="text-align: center;">None</td>
+<td style="text-align: center;">None</td>
+</tr>
+</tbody>
+</table>
+<p>据此可搭建网络模型</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">AlexNet_Paper</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, input_channel=<span class="number">3</span>, num_classes=<span class="number">1000</span></span>):</span><br><span class="line">        <span class="built_in">super</span>(AlexNet_Paper, <span class="variable language_">self</span>).__init__()</span><br><span class="line">        <span class="variable language_">self</span>.conv1 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=input_channel, out_channels=<span class="number">96</span>, kernel_size=<span class="number">11</span>, stride=<span class="number">4</span>, padding=<span class="number">2</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">3</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv2 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">96</span>, out_channels=<span class="number">256</span>, kernel_size=<span class="number">5</span>, padding=<span class="number">2</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">3</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv3 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">256</span>, out_channels=<span class="number">384</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv4 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">384</span>, out_channels=<span class="number">384</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv5 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">384</span>, out_channels=<span class="number">256</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">3</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc1 = nn.Sequential(</span><br><span class="line">            nn.Flatten(),</span><br><span class="line">            nn.Linear(<span class="number">6</span> * <span class="number">6</span> * <span class="number">256</span>, <span class="number">4096</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.Dropout(p=<span class="number">0.5</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc2 = nn.Sequential(</span><br><span class="line">            nn.Linear(<span class="number">4096</span>, <span class="number">4096</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.Dropout(p=<span class="number">0.5</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc3 = nn.Sequential(</span><br><span class="line">            nn.Linear(<span class="number">4096</span>, num_classes),</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        x = <span class="variable language_">self</span>.conv1(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv2(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv3(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv4(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv5(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc1(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc2(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc3(x)</span><br><span class="line">        <span class="keyword">return</span> x</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="各层输出-size-计算">各层输出 size 计算</h3>
+<ol type="1">
+<li><p>Conv 层的输出 size 计算公式</p>
+<p>设输入 size 为 i * i ，卷积核 size 为 k * k ，步长为 s ，边缘填充为 p
+，输出 size 为 o * o</p>
+<p><span class="math display">\[o =
+\frac{i-k+2*p}{s}+1\]</span></p></li>
+<li><p>Maxpool 层的 size 计算公式</p>
+<p>设输入 size 为 i * i ，池化核 size 为 k * k ，步长为 s ，输出 size 为
+o * o</p>
+<p><span class="math display">\[o = \frac{i-k}{s}+1\]</span></p></li>
+</ol>
+<h4 id="alexnet-输入-size-问题">AlexNet 输入 size 问题</h4>
+<p>AlexNet 输入的图像 size 在论文中多处均描述为 224*224 ，Maxpool1
+层输入的 size 在论文 Figure2 中描述为 55*55</p>
+<figure>
+<img data-src="https://s2.loli.net/2022/09/13/9AwGtkcOUJd8X2p.png" alt="image.png">
+<figcaption aria-hidden="true">image.png</figcaption>
+</figure>
+<blockquote>
+<p>The first convolutional layer filters the 224×224×3 input image with
+96 kernels of size 11×11×3 with a stride of 4 pixels (this is the
+distance between the receptive field centers of neighboring neurons in a
+kernel map).</p>
+</blockquote>
+<p>当将论文中的数据带入计算后发现经过 Conv1 层输出的 size 与 Maxpool1
+层输入的 size 有冲突</p>
+<p><span class="math display">\[o = \frac{i-k+2*p}{s} +1 =
+\frac{224-11}{4} +1 = 54.25 \approx 54\]</span></p>
+<p>即 Conv1 层输出的 size为 54*54 ，而 Maxpool1 层输入的 size 为
+55*55</p>
+<p>若 AlexNet 输入的图像 size 改为 227*227 ，则可得到 Maxpool1
+层所需要的输入 size</p>
+<p><span class="math display">\[o = \frac{i-k+2*p}{s} +1 =
+\frac{227-11}{4} +1 = 55\]</span></p>
+<p>然后在 Pytorch 的 model 库中发现 Conv1 层还应用了 padding</p>
+<p><span class="math display">\[o = \frac{i-k+2*p}{s} +1 =
+\frac{224-11+2*2}{4} +1 = 55.25 \approx 55\]</span></p>
+<p>最终搭建模型时输入 size 采用 224*224</p>
+<h4 id="参考网页">参考网页</h4>
+<p>一抹青竹 - <a href="https://www.bilibili.com/read/cv7181322/">较真AlexNet：到底是224还是227？</a></p>
+<p>ZJE_ANDY - <a href="https://blog.csdn.net/u014453898/article/details/85126733">图像卷积和池化操作后的特征图大小计算方法</a></p>
+<p>GitHub - <a href="https://github.com/pytorch/vision/blob/main/torchvision/models/alexnet.py">torchvision/models/AlexNet.py</a></p>
+<h3 id="flatten-层">Flatten 层</h3>
+<p>Conv5 层输出的 size 为 6*6*256 ，而 FC1
+层所需输入要求是一维的，因此需要使用 Flatten 将三维数据压缩成一维</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">nn.Flatten()</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="针对-cifar10-数据集的修改">针对 CIFAR10 数据集的修改</h3>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">AlexNet_CIFAR10</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">super</span>(AlexNet_CIFAR10, <span class="variable language_">self</span>).__init__()</span><br><span class="line">        <span class="variable language_">self</span>.conv1 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">3</span>, out_channels=<span class="number">64</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">2</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv2 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">64</span>, out_channels=<span class="number">256</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">2</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv3 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">256</span>, out_channels=<span class="number">384</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv4 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">384</span>, out_channels=<span class="number">256</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.conv5 = nn.Sequential(</span><br><span class="line">            nn.Conv2d(in_channels=<span class="number">256</span>, out_channels=<span class="number">256</span>, kernel_size=<span class="number">3</span>, padding=<span class="number">1</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.MaxPool2d(kernel_size=<span class="number">2</span>, stride=<span class="number">2</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc1 = nn.Sequential(</span><br><span class="line">            nn.Flatten(),</span><br><span class="line">            nn.Linear(<span class="number">4</span> * <span class="number">4</span> * <span class="number">256</span>, <span class="number">4096</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.Dropout(p=<span class="number">0.5</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc2 = nn.Sequential(</span><br><span class="line">            nn.Linear(<span class="number">4096</span>, <span class="number">4096</span>),</span><br><span class="line">            nn.ReLU(inplace=<span class="literal">True</span>),</span><br><span class="line">            nn.Dropout(p=<span class="number">0.5</span>),</span><br><span class="line">        )</span><br><span class="line">        <span class="variable language_">self</span>.fc3 = nn.Sequential(</span><br><span class="line">            nn.Linear(<span class="number">4096</span>, <span class="number">10</span>),</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x</span>):</span><br><span class="line">        x = <span class="variable language_">self</span>.conv1(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv2(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv3(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv4(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.conv5(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc1(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc2(x)</span><br><span class="line">        x = <span class="variable language_">self</span>.fc3(x)</span><br><span class="line">        <span class="keyword">return</span> x</span><br></pre></td></tr></tbody></table></figure>
+<h2 id="模型训练">模型训练</h2>
+<h3 id="准备数据集">准备数据集</h3>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">ROOT_DIR = os.getcwd()</span><br><span class="line">DATASET_DIR = os.path.join(ROOT_DIR, <span class="string">"dataset"</span>, <span class="string">"CIFAR10"</span>)</span><br><span class="line"></span><br><span class="line">transform = T.Compose(</span><br><span class="line">  [</span><br><span class="line">      T.ToTensor(),</span><br><span class="line">      T.Normalize((<span class="number">0.5</span>, <span class="number">0.5</span>, <span class="number">0.5</span>), (<span class="number">0.5</span>, <span class="number">0.5</span>, <span class="number">0.5</span>)),</span><br><span class="line">  ]</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">train_dataset = datasets.CIFAR10(root=DATASET_DIR, train=<span class="literal">True</span>, download=<span class="literal">True</span>, transform=transform)</span><br><span class="line">test_dataset = datasets.CIFAR10(root=DATASET_DIR, train=<span class="literal">False</span>, download=<span class="literal">True</span>, transform=transform)</span><br><span class="line"></span><br><span class="line">train_size = <span class="built_in">int</span>(<span class="number">0.8</span> * <span class="built_in">len</span>(train_dataset))</span><br><span class="line">eval_size = <span class="built_in">len</span>(train_dataset) - train_size</span><br><span class="line">test_size = <span class="built_in">len</span>(test_dataset)</span><br><span class="line"></span><br><span class="line">train_dataset, eval_dataset = random_split(train_dataset, [train_size, eval_size])</span><br><span class="line">train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=<span class="literal">True</span>, num_workers=<span class="number">2</span>, pin_memory=<span class="literal">True</span>)</span><br><span class="line">eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=<span class="literal">True</span>, num_workers=<span class="number">2</span>, pin_memory=<span class="literal">True</span>)</span><br><span class="line">test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=<span class="literal">True</span>, num_workers=<span class="number">2</span>, pin_memory=<span class="literal">True</span>)</span><br></pre></td></tr></tbody></table></figure>
+<h4 id="计算数据集均值和方差">计算数据集均值和方差</h4>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">get_CIFAR10_mean_std</span>(<span class="params">dataset_dir</span>):</span><br><span class="line">    train_dataset = datasets.CIFAR10(root=dataset_dir, train=<span class="literal">True</span>, download=<span class="literal">True</span>, transform=T.ToTensor())</span><br><span class="line">    train_loader = DataLoader(dataset=train_dataset, batch_size=<span class="number">64</span>, shuffle=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">    channels_sum, channels_squared_sum, num_batches = <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> data, _ <span class="keyword">in</span> train_loader:  <span class="comment"># 批量*通道*高*宽</span></span><br><span class="line">        channels_sum += torch.mean(data, dim=[<span class="number">0</span>, <span class="number">2</span>, <span class="number">3</span>])  <span class="comment"># 剩下通道这个维度</span></span><br><span class="line">        channels_squared_sum += torch.mean(data**<span class="number">2</span>, dim=[<span class="number">0</span>, <span class="number">2</span>, <span class="number">3</span>])</span><br><span class="line">        num_batches += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    mean = channels_sum / num_batches</span><br><span class="line">    std = (channels_squared_sum / num_batches - mean**<span class="number">2</span>) ** <span class="number">0.5</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> mean, std</span><br></pre></td></tr></tbody></table></figure>
+<p>通过自定义函数来计算数据集均值和方差，可以自适应的对数据集进行归一化</p>
+<h4 id="划分验证集">划分验证集</h4>
+<p>在本次实验中为了观察训练过程中的模型训练效果，从训练集中划分出了验证集</p>
+<p><code>random_split()</code> 函数可以将输入的 Dataset 划分为输入 list
+中各元素长度的子 Dataset</p>
+<h3 id="网络模型实例化">网络模型实例化</h3>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">model = AlexNet_CIFAR10()</span><br><span class="line">device = torch.device(<span class="string">"cuda:0"</span> <span class="keyword">if</span> torch.cuda.is_available() <span class="keyword">else</span> <span class="string">"cpu"</span>)</span><br><span class="line">model.to(device)</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="设计-loss-和优化器">设计 Loss 和优化器</h3>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">criterion = torch.nn.CrossEntropyLoss()</span><br><span class="line">optimizer = optim.SGD(model.parameters(), lr=<span class="number">0.01</span>, momentum=<span class="number">0.9</span>)</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="训练过程">训练过程</h3>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">train_loss, train_acc, eval_loss, eval_acc = [], [], [], []</span><br><span class="line"><span class="keyword">for</span> epoch <span class="keyword">in</span> tqdm(<span class="built_in">range</span>(args.num_epochs)):</span><br><span class="line"></span><br><span class="line">    training_epoch_loss, training_epoch_acc = <span class="number">0.0</span>, <span class="number">0.0</span></span><br><span class="line">    training_temp_loss, training_temp_correct = <span class="number">0</span>, <span class="number">0</span></span><br><span class="line">    model.train()</span><br><span class="line">    <span class="keyword">for</span> batch_idx, data <span class="keyword">in</span> <span class="built_in">enumerate</span>(train_loader, start=<span class="number">0</span>):</span><br><span class="line"></span><br><span class="line">        inputs, targets = data</span><br><span class="line">        <span class="keyword">if</span> args.gpu:</span><br><span class="line">            inputs, targets = inputs.to(device), targets.to(device)</span><br><span class="line">        optimizer.zero_grad()</span><br><span class="line"></span><br><span class="line">        outputs = model(inputs)</span><br><span class="line">        loss = criterion(outputs, targets)</span><br><span class="line">        loss.backward()</span><br><span class="line">        optimizer.step()</span><br><span class="line"></span><br><span class="line">        training_temp_loss += loss.item()</span><br><span class="line">        predicted = torch.argmax(outputs.data, dim=<span class="number">1</span>)</span><br><span class="line">        training_temp_correct += (predicted == targets).<span class="built_in">sum</span>().item()</span><br><span class="line"></span><br><span class="line">    training_epoch_loss = training_temp_loss / batch_idx</span><br><span class="line">    training_epoch_acc = <span class="number">100</span> * training_temp_correct / train_size</span><br><span class="line"></span><br><span class="line">    train_loss.append(training_epoch_loss)</span><br><span class="line">    train_acc.append(training_epoch_acc)</span><br><span class="line"></span><br><span class="line">    evaling_epoch_loss, evaling_epoch_acc = <span class="number">0.0</span>, <span class="number">0.0</span></span><br><span class="line">    evaling_temp_loss, evaling_temp_correct = <span class="number">0</span>, <span class="number">0</span></span><br><span class="line">    model.<span class="built_in">eval</span>()</span><br><span class="line">    <span class="keyword">with</span> torch.no_grad():</span><br><span class="line">        <span class="keyword">for</span> batch_idx, data <span class="keyword">in</span> <span class="built_in">enumerate</span>(eval_loader, start=<span class="number">0</span>):</span><br><span class="line">            inputs, targets = data</span><br><span class="line">            <span class="keyword">if</span> args.gpu:</span><br><span class="line">                inputs, targets = inputs.to(device), targets.to(device)</span><br><span class="line"></span><br><span class="line">            outputs = model(inputs)</span><br><span class="line">            loss = criterion(outputs, targets)</span><br><span class="line"></span><br><span class="line">            evaling_temp_loss += loss.item()</span><br><span class="line">            predicted = torch.argmax(outputs.data, dim=<span class="number">1</span>)</span><br><span class="line">            evaling_temp_correct += (predicted == targets).<span class="built_in">sum</span>().item()</span><br><span class="line"></span><br><span class="line">    evaling_epoch_loss = evaling_temp_loss / batch_idx</span><br><span class="line">    evaling_epoch_acc = <span class="number">100</span> * evaling_temp_correct / eval_size</span><br><span class="line"></span><br><span class="line">    eval_loss.append(evaling_epoch_loss)</span><br><span class="line">    eval_acc.append(evaling_epoch_acc)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(</span><br><span class="line">        <span class="string">"[Epoch {:3d}] train_loss: {:.3f} train_acc: {:.3f}% eval_loss: {:.3f} eval_acc: {:.3f}%"</span>.<span class="built_in">format</span>(</span><br><span class="line">            epoch + <span class="number">1</span>, training_epoch_loss, training_epoch_acc, evaling_epoch_loss, evaling_epoch_acc</span><br><span class="line">        )</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">"Training process has finished. Saving trained model."</span>)</span><br><span class="line">SAVE_DIR = <span class="string">"./AlexNet_CIFAR10.pth"</span></span><br><span class="line">torch.save(model.state_dict(), SAVE_DIR)</span><br></pre></td></tr></tbody></table></figure>
+<h4 id="验证过程">验证过程</h4>
+<ol type="1">
+<li><p>模型模式切换</p>
+<p>在对验证集进行验证时，需要将网络模型 Dropout
+层禁用，这时候就需要如下代码将模型切换到分析模式</p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">model.<span class="built_in">eval</span>()</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>而再次进行训练时，需要启用 Dropout
+层，这时需要如下代码将模型切换到训练模式</p>
+<p></p><figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">model.train()</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+<li><p>停止计算图的构建</p>
+<p>在验证过程和测试过程中，由于只需要网络模型的结果，而不需要生成计算图，可以使用
+<code>with torch.no_grad()</code> 节约运算资源</p></li>
+</ol>
+<h4 id="参考网页-1">参考网页</h4>
+<p>未来达摩大师 - <a href="https://zhuanlan.zhihu.com/p/494060986">【PyTorch】搞定网络训练中的model.train()和model.eval()模式</a></p>
+<p>失之毫厘，差之千里 - <a href="https://blog.csdn.net/qq_42251157/article/details/124101436">with
+torch.no_grad() 详解</a></p>
+<h3 id="保存模型">保存模型</h3>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">print</span>(<span class="string">"Training process has finished. Saving trained model."</span>)</span><br><span class="line">SAVE_DIR = <span class="string">"./AlexNet_CIFAR10.pth"</span></span><br><span class="line">torch.save(model.state_dict(), SAVE_DIR)</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="测试过程">测试过程</h3>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">print</span>(<span class="string">"------Starting testing------"</span>)</span><br><span class="line">testing_temp_loss, testing_temp_correct = <span class="number">0</span>, <span class="number">0</span></span><br><span class="line">model.<span class="built_in">eval</span>()</span><br><span class="line"><span class="keyword">with</span> torch.no_grad():</span><br><span class="line">  <span class="keyword">for</span> batch_idx, data <span class="keyword">in</span> tqdm(<span class="built_in">enumerate</span>(test_loader, start=<span class="number">0</span>)):</span><br><span class="line">      inputs, targets = data</span><br><span class="line">      <span class="keyword">if</span> args.gpu:</span><br><span class="line">          inputs, targets = inputs.to(device), targets.to(device)</span><br><span class="line"></span><br><span class="line">      outputs = model(inputs)</span><br><span class="line">      loss = criterion(outputs, targets)</span><br><span class="line"></span><br><span class="line">      testing_temp_loss += loss.item()</span><br><span class="line">      predicted = torch.argmax(outputs.data, dim=<span class="number">1</span>)</span><br><span class="line">      testing_temp_correct += (predicted == targets).<span class="built_in">sum</span>().item()</span><br><span class="line"></span><br><span class="line">testing_loss = testing_temp_loss / batch_idx</span><br><span class="line">testing_acc = <span class="number">100</span> * testing_temp_correct / test_size</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">"[Test     ] loss: {:.3f} acc: {:.3f}%%"</span>.<span class="built_in">format</span>(testing_loss, testing_acc))</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="绘制图表">绘制图表</h3>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">fig, ax = plt.subplots()</span><br><span class="line">ax.plot(np.arange(args.num_epochs), train_loss, np.arange(args.num_epochs), eval_loss)</span><br><span class="line">ax.set_xlabel(<span class="string">"Epoch"</span>)</span><br><span class="line">ax.set_ylabel(<span class="string">"Loss"</span>)</span><br><span class="line">ax.legend([<span class="string">"train_loss"</span>, <span class="string">"eval_loss"</span>])</span><br><span class="line">plt.show()</span><br><span class="line"></span><br><span class="line">fig, ax = plt.subplots()</span><br><span class="line">ax.plot(np.arange(args.num_epochs), train_acc, np.arange(args.num_epochs), eval_acc)</span><br><span class="line">ax.set_xlabel(<span class="string">"Epoch"</span>)</span><br><span class="line">ax.set_ylabel(<span class="string">"acc"</span>)</span><br><span class="line">ax.legend([<span class="string">"train_acc"</span>, <span class="string">"eval_acc"</span>])</span><br><span class="line">plt.show()</span><br></pre></td></tr></tbody></table></figure>
+<h3 id="softmax">softmax</h3>
+<p>在构建网络的时候，由于没有考虑到交叉熵损失函数中已经包含了 Softmax
+函数，而在模型的末尾加入了 Softmax 层，导致网络模型不能正常收敛</p>
+<figure>
+<img data-src="https://s2.loli.net/2022/09/14/uCjMp1lHcwJ5PsB.png" alt="Softmax acc-Epoch">
+<figcaption aria-hidden="true">Softmax acc-Epoch</figcaption>
+</figure>
+<figure>
+<img data-src="https://s2.loli.net/2022/09/14/on4mcODhAWF8Ygu.png" alt="Softmax Loss-Epoch">
+<figcaption aria-hidden="true">Softmax Loss-Epoch</figcaption>
+</figure>
+<blockquote>
+<p><code>Torch.nn.CrossEntropyLoss()</code> 函数是先将输出结果输入到
+Softmax 层后取对数，再应用 NLLLoss 即
+<code>Torch.nn.CrossEntropyLoss()</code> = LogSoftmax + NLLLoss</p>
+</blockquote>
+<p>将模型最后的 Softmax 层去掉网络就可正常收敛了</p>
+<p>在此处把警钟敲烂，要和 GPU 一起检查</p>
+<h3 id="参考网页-2">参考网页</h3>
+<p>爱学英语的程序媛 - <a href="https://www.cnblogs.com/Bella2017/p/11791216.html">Pytorch划分数据集的方法</a></p>
+<p>Wabi―sabi - <a href="https://blog.csdn.net/qq_53640005/article/details/115434295">AlexNet网络对CIFAR10分类——torch实现</a></p>
+<p>故你， - <a href="https://blog.csdn.net/Myshrry/article/details/123853892">[pytorch]
+利用Alexnet训练cifar10</a></p>
+<h2 id="argparse-库">argparse 库</h2>
+<p>argparse 可以给 Python 脚本传入参数</p>
+<p>使用时需要先导入库</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> argparse</span><br></pre></td></tr></tbody></table></figure>
+<p>然后实例化参数容器</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">parser = argparse.ArgumentParser()</span><br></pre></td></tr></tbody></table></figure>
+<p>最后逐一添加所需参数（及其默认值）</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line">parser.add_argument(<span class="string">"--gpu"</span>, action=<span class="string">"store_true"</span>, default=<span class="literal">True</span>, <span class="built_in">help</span>=<span class="string">"use gpu mode"</span>)</span><br><span class="line">parser.add_argument(<span class="string">"--batch_size"</span>, <span class="built_in">type</span>=<span class="built_in">int</span>, default=<span class="number">32</span>, <span class="built_in">help</span>=<span class="string">"batch size in training"</span>)</span><br><span class="line">parser.add_argument(<span class="string">"--num_epochs"</span>, <span class="built_in">type</span>=<span class="built_in">int</span>, default=<span class="number">20</span>, <span class="built_in">help</span>=<span class="string">"epochs in training"</span>)</span><br></pre></td></tr></tbody></table></figure>
+<p>后续代码只需要调用 parser 的对应成员即可</p>
+<h3 id="参考网页-3">参考网页</h3>
+<p>Fan19zju - <a href="https://blog.csdn.net/Fan19zju/article/details/118570720">argparse库教程（超易懂）</a></p>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>学习</category>
+      </categories>
+      <tags>
+        <tag>CNN</tag>
+        <tag>Python</tag>
+        <tag>PyTorch</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>WSL 深度学习总结</title>
     <url>/posts/e5bb69fc.html</url>
     <content><![CDATA[<h2 id="环境安装">环境安装</h2>
@@ -2385,517 +2385,10 @@ support</a></p>
         <category>Linux</category>
       </categories>
       <tags>
-        <tag>点云</tag>
         <tag>PointNet</tag>
-        <tag>WSL</tag>
-        <tag>Ubuntu</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>基于机器学习的相邻时序植物点云配准总结</title>
-    <url>/posts/5f7835f6.html</url>
-    <content><![CDATA[<h2 id="总结">总结</h2>
-<h3 id="代码部分">代码部分</h3>
-<h4 id="循环部分">循环部分</h4>
-<p>在循环时需要注意利用 <code>if</code> 判断跳过的部分</p>
-<p>例如通过某些特征值进行筛选，对特定的类别赋值时，不应忘记没有通过筛选的部分，要对这些部分也进行赋值，否则会导致赋值顺序与实际顺序无法对应</p>
-<h4 id="应用变换部分">应用变换部分</h4>
-<p>在将点云应用变换矩阵的时候应该注意，该函数是否会改变原点云，若会改变则需要深复制点云进行保护</p>
-<h3 id="策略部分">策略部分</h3>
-<h4 id="归一化部分">归一化部分</h4>
-<p>数据集的归一化具有必要性</p>
-<p>但是针对点云中坐标的归一化不能简单的使用最大最小值归一化，因为这可能会导致点云的压缩</p>
-<p>针对点云坐标的归一化应该使用均值方差归一化，即 <code>PointNet</code>
-和 <code>PointNet++</code> 所提出的归一化方式</p>
-<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">xyz = np.asarray(pcd.points)                    <span class="comment"># pcd 为 open3D 的 PointCloud 类型</span></span><br><span class="line">centroid = np.mean(xyz, axis=<span class="number">0</span>)                 <span class="comment"># 求取点云的中心</span></span><br><span class="line">xyz = xyz - centroid                            <span class="comment"># 将点云中心置于原点 (0, 0, 0)</span></span><br><span class="line">m = np.<span class="built_in">max</span>(np.sqrt(np.<span class="built_in">sum</span>(xyz**<span class="number">2</span>, axis=<span class="number">1</span>)))     <span class="comment"># 求取长轴的的长度</span></span><br><span class="line">xyz_norm = xyz / m                              <span class="comment"># 将点云进行缩放</span></span><br></pre></td></tr></tbody></table></figure>
-<h4 id="配准策略部分">配准策略部分</h4>
-<p>直接对整个点云进行配准可能会面临叶片增加或减少情况，导致配准效果不佳</p>
-<p>针对此情况，采取选取植株中最大的三片叶片，对这三片叶片进行计算特征后进行配准</p>
-<p>暂时使用的配准方法是使用 open3D 库提供的配准方法</p>
-<p>即 计算点云的 FPFH 特征，然后进行粗配准，再进行 ICP 精配准</p>
-<p>叶片生长过程中叶片位置、形态可能会发生较大变化</p>
-<p>导致相邻时序中选取的叶片并不对应，配准时陷入局部最优（叶片翻转或叶片垂直或叶片偏移）</p>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>学习</category>
-      </categories>
-      <tags>
         <tag>点云</tag>
-        <tag>Python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>WSL 安装总结</title>
-    <url>/posts/f1f0ebac.html</url>
-    <content><![CDATA[<p>考虑到虚拟机不能使用 GPU 加速，现在打算配置 WSL 在 Ubuntu
-上进行训练</p>
-<h2 id="环境要求">环境要求</h2>
-<p>Windows 10 版本 2004 及更高版本</p>
-<h2 id="wsl-安装步骤">WSL 安装步骤</h2>
-<ol type="1">
-<li><p>启用系统功能</p>
-<p>控制面板 =⇒ 程序 =⇒ 程序和功能 =⇒ 启用或关闭 windows
-功能，勾选下列选项</p>
-<ul>
-<li>Hyper-V</li>
-<li>适用于 Linux 的 Windows 子系统</li>
-<li>虚拟机平台</li>
-</ul>
-<p>然后重新启动计算机</p></li>
-<li><p>下载并安装<a href="https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi">适用于
-x64 计算机的 WSL2 Linux 内核更新包</a></p></li>
-<li><p>将 WSL 2 设置为默认版本</p>
-<p>打开 PowerShell ，输入如下指令</p>
-<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">wsl <span class="literal">--set-default-version</span> <span class="number">2</span></span><br></pre></td></tr></tbody></table></figure><p></p></li>
-<li><p>安装 Linux 分发</p>
-<p>在 PowerShell 中输入如下指令可以查看可获取的 Linux 分发版本</p>
-<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">wsl <span class="literal">--list</span> <span class="literal">--online</span></span><br></pre></td></tr></tbody></table></figure><p></p>
-<p>推荐选择 Ubuntu-20.04.3 LTS</p>
-<p>输入如下指令安装 Linux 分发</p>
-<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">wsl <span class="literal">--install</span> <span class="literal">-d</span> &lt;Distribution Name&gt;</span><br></pre></td></tr></tbody></table></figure><p></p>
-<blockquote>
-<p>WSL --install 默认安装固定版本的 Ubuntu -d 参数可以选择任意其他 Linux
-分发版本 &lt;Distribution Name&gt; 替换为 Linux 分发版本的名称</p>
-</blockquote></li>
-<li><p>安装后设置用户账号和密码</p></li>
-</ol>
-<h3 id="wsl-安装参考网页">WSL 安装参考网页</h3>
-<p>Microsoft - <a href="https://docs.microsoft.com/zh-cn/windows/wsl/install-manual">旧版
-WSL 的手动安装步骤</a></p>
-<p>憨憨不敢_ - <a href="https://blog.csdn.net/weixin_45191709/article/details/125871102">2022
-window下安装ubuntu22.04（wsl升级 包含 podman &amp; docker ）</a></p>
-<h2 id="wsl-配置">WSL 配置</h2>
-<ol type="1">
-<li><p>WSL2 连接 Windows 防火墙</p>
-<ol type="1">
-<li><p>检查 WSL 与 Windows 连接</p>
-<p>在 PowerShell 中输入如下指令获取 Windows 本机 IP 和 WSL IP</p>
-<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">ipconfig</span><br></pre></td></tr></tbody></table></figure><p></p>
-<p>Windows 本机 IP 地址如下</p>
-<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">无线局域网适配器 WLAN:</span><br><span class="line"></span><br><span class="line">    IPv4 地址 . . . . . . . . . . . . :</span><br></pre></td></tr></tbody></table></figure><p></p>
-<p>WSL IP 地址如下</p>
-<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">以太网适配器 vEthernet (WSL):</span><br><span class="line"></span><br><span class="line">    IPv4 地址 . . . . . . . . . . . . :</span><br></pre></td></tr></tbody></table></figure><p></p>
-<p>分别在 PowerShell 和 WSL 中输入下列指令检查连接</p>
-<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">ping &lt;IPv4 Address&gt;</span><br></pre></td></tr></tbody></table></figure><p></p>
-<blockquote>
-<p>Linux 系统中 Ping
-指令不会自行停止，需要使用<code>Ctrl + C</code>停止指令</p>
-</blockquote></li>
-<li><p>若不能 ping 通，则检查 Windows 防火墙：</p>
-<p>控制面板 =⇒ 系统和安全 =⇒ Windows Defender 防火墙 =⇒ 高级设置</p>
-<ul>
-<li>入站规则</li>
-<li>出站规则</li>
-</ul>
-<p>启用其中所有 WSL 规则</p></li>
-<li><p>若不存在该规则则需要自行创建：在 PowerShell
-中以管理员身份输入如下指令</p>
-<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">New-NetFirewallRule</span> <span class="literal">-DisplayName</span> <span class="string">"WSL"</span> <span class="literal">-Direction</span> Inbound  <span class="literal">-InterfaceAlias</span> <span class="string">"vEthernet (WSL)"</span>  <span class="literal">-Action</span> Allow</span><br><span class="line"><span class="built_in">New-NetFirewallRule</span> <span class="literal">-DisplayName</span> <span class="string">"WSL"</span> <span class="literal">-Direction</span> Outbound  <span class="literal">-InterfaceAlias</span> <span class="string">"vEthernet (WSL)"</span>  <span class="literal">-Action</span> Allow</span><br></pre></td></tr></tbody></table></figure><p></p></li>
-</ol></li>
-<li><p>配置 Ubuntu apt 源</p>
-<p>备份原 apt 源</p>
-<p></p><figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> <span class="built_in">mv</span> /etc/apt/sources.list /etc/apt/sources.list.bak</span><br></pre></td></tr></tbody></table></figure><p></p>
-<p>编辑 apt 源</p>
-<p></p><figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> vi /etc/apt/sources.list</span><br></pre></td></tr></tbody></table></figure><p></p>
-<p>添加国内源</p>
-<ul>
-<li><p>清华源</p>
-<figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt; main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt; main restricted universe multiverse</span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-updates main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-updates main restricted universe multiverse</span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-backports main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-backports main restricted universe multiverse</span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-security main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-security main restricted universe multiverse</span><br></pre></td></tr></tbody></table></figure></li>
-<li><p>中科大源</p>
-<figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line">deb https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt; main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt; main restricted universe multiverse</span><br><span class="line">deb https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-security main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-security main restricted universe multiverse</span><br><span class="line">deb https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-updates main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-updates main restricted universe multiverse</span><br><span class="line">deb https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-backports main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-backports main restricted universe multiverse</span><br></pre></td></tr></tbody></table></figure></li>
-</ul>
-<p>更新源</p>
-<p></p><figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt-get update</span><br></pre></td></tr></tbody></table></figure><p></p>
-<p>更新软件</p>
-<p></p><figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt-get upgrade</span><br></pre></td></tr></tbody></table></figure><p></p></li>
-</ol>
-<h3 id="wsl-ubuntu-配置问题">WSL / Ubuntu 配置问题</h3>
-<ol type="1">
-<li><p>Ubuntu 切换阿里云源后提示缺少公钥</p>
-<p>解决方法：</p>
-<p>sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys
-3B4FE6ACC0B21F32</p></li>
-</ol>
-<h3 id="wsl-ubuntu-配置参考网页">WSL / Ubuntu 配置参考网页</h3>
-<p>清华大学开源软件镜像站 - <a href="https://mirrors.tuna.tsinghua.edu.cn/help/ubuntu/">Ubuntu
-镜像使用帮助</a> 中国科技大学开源软件镜像站 - <a href="https://mirrors.ustc.edu.cn/help/ubuntu.html">Ubuntu
-源使用帮助</a> weixin_43858295 - <a href="https://blog.csdn.net/weixin_43858295/article/details/123959824">Ubuntu
-换阿里云源后更新提示： GPG error 缺少公钥解决方法</a></p>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>Linux</category>
-      </categories>
-      <tags>
         <tag>WSL</tag>
         <tag>Ubuntu</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>点云补全论文阅读总结</title>
-    <url>/posts/781c276d.html</url>
-    <content><![CDATA[<h2 id="beyond-3d-siamese-tracking-a-motion-centric-paradigm-for-3d-single-object-tracking-in-point-clouds1">Beyond
-3D Siamese Tracking: A Motion-Centric Paradigm for 3D Single Object
-Tracking in Point Clouds<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></h2>
-<p>论文提出了一种针对 LiDAR 雷达获得的存在运动物体场景的目标跟踪方法</p>
-<p>论文并不是纯粹点云补全，而是针对运动中的物体（即在场景中发生刚性变换的物体）进行补全，略过</p>
-<h2 id="monocular-3d-object-reconstruction-with-gan-inversion2">Monocular 3D
-Object Reconstruction with GAN Inversion<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></h2>
-<p>论文提出了一种基于 GAN 网络的由图像生成具有相似纹理特征的 Mesh
-方法</p>
-<p>略过</p>
-<h2 id="d-pl-domain-adaptive-depth-estimation-with-3d-aware-pseudo-labeling3">3D-PL:
-Domain Adaptive Depth Estimation with 3D-aware Pseudo-Labeling<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></h2>
-<p>论文提出了一种利用二维图像和三维点云进行标注深度图像数据集的单目图像深度估计方法</p>
-<p>论文并不是关于点云补全，而是针对深度图进行补全，略过</p>
-<h2 id="rignet-repetitive-image-guided-network-for-depth-completion4">RigNet:
-Repetitive Image Guided Network for Depth Completion<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a></h2>
-<p>论文提出了一种基于多尺度的稀疏深度图补全方法</p>
-<p>论文并不是关于点云补全，而是针对深度图进行补全，略过</p>
-<h2 id="multi-modal-masked-pre-training-for-monocular-panoramic-depth-completion5">Multi-Modal
-Masked Pre-Training for Monocular Panoramic Depth Completion<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a></h2>
-<p>论文提出了一种使用随机 Mask 训练的单目 360°
-全景图片的稀疏深度图补全方法</p>
-<p>论文并不是纯粹点云补全，针对全景图片的点云进行补全，略过</p>
-<h2 id="shapeformer-transformer-based-shape-completion-via-sparse-representation6">ShapeFormer:
-Transformer-based Shape Completion via Sparse Representation<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a></h2>
-<p>论文提出了一种基于注意力机制和点云体素化表示编码器解码器 (VQDIF)
-的补全 / GAN 方法，输入为缺失的点云，转换成 DIF 表示后进行补全 /
-生成，最后再转换为 Mesh 输出</p>
-<ul>
-<li>深度隐函数 DIF</li>
-</ul>
-<blockquote>
-<p>与图像补全不同，在 3D
-形状补全中，输入也可能含有噪声，若是完整保留输入必然会产生嘈杂的结果</p>
-</blockquote>
-<p>潜在的研究方向，可以放着，但是并不是纯点云研究，优先级并不高</p>
-<h2 id="fast-algorithm-for-low-rank-tensor-completion-in-delay-embedded-space7">Fast
-Algorithm for Low-rank Tensor Completion in Delay-embedded Space<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a></h2>
-<p>论文提出了一种利用多路延迟嵌入变换实现张量 / 图像补全的方法</p>
-<p>论文并不是纯粹点云补全，略过</p>
-<h2 id="sparse-fuse-dense-towards-high-quality-3d-detection-with-depth-completion8">Sparse
-Fuse Dense: Towards High Quality 3D Detection with Depth Completion<a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a></h2>
-<p>论文提出了一种利用 LiDAR
-稀疏点云和二维彩色图像的多模态融合实现目标检测的方法，并没有涉及到补全部分</p>
-<p>论文并不是纯粹点云补全，而是尝试使用多模态进行补全，略过</p>
-<h2 id="d-shape-reconstruction-from-2d-images-with-disentangled-attribute-flow9">3D
-Shape Reconstruction from 2D Images with Disentangled Attribute Flow<a href="#fn9" class="footnote-ref" id="fnref9" role="doc-noteref"><sup>9</sup></a></h2>
-<p>论文提出了一种基于 Attribute Flow 模型实现从单张二维 RGB 图像重建为
-3D 点云的方法</p>
-<p>但在论文中也提到该方法可以用在点云补全，但是文中并没有详细说明如何修改网络，而是说参照
-VRCNet<a href="#fn10" class="footnote-ref" id="fnref10" role="doc-noteref"><sup>10</sup></a> 的设置，VRCNet
-在待阅读论文中，将详细查看具体方法</p>
-<p>暂留</p>
-<p>[ ] VRCNet 补充引用</p>
-<h2 id="learning-local-displacements-for-point-cloud-completion10">Learning
-Local Displacements for Point Cloud Completion<a href="#fn11" class="footnote-ref" id="fnref11" role="doc-noteref"><sup>11</sup></a></h2>
-<h3 id="introduction-conclusion">Introduction &amp; Conclusion</h3>
-<p>论文提出了以下内容</p>
-<ul>
-<li>基于编码器-解码器架构的对象点云补全和场景点云补全算法模型
-<ul>
-<li>针对局部点云的特征提取方法</li>
-<li>能够提取点云的特征的邻域池化算法</li>
-<li>创新的上采样方法</li>
-</ul></li>
-<li>结合上述处理方法并结合 Transformer 架构的算法模型</li>
-</ul>
-<h3 id="related-works">Related works</h3>
-<ul>
-<li><p>论文中提到的点云补全的研究现状</p>
-<blockquote>
-<p>FoldingNet 和 AtlasNet 是最早提出利用 PointNet
-提取的特征进行点云补全的两个网络，方法是将一个或多个二维网格变形为所需的形状。
-PCN 在上述两个模型的基础上提出使用更小的 2D
-网格进行变换以重建更精细的结构。 通过编码器-解码器架构，ASFM-Net 和
-VRCNet
-将编码的潜在特征与先验完成形状相匹配，从而产生良好的粗略完成结果。为了从部分扫描中保留观察到的几何形状以进行精细重建，MSN
-和 VRCNet 通过使用最小密度采样 (MDS) 或距观察表面的最远点采样 (FPS)
-绕过观察到的几何形状，并且建立跳过连接。通过嵌入体积子架构，GRNet
-保留离散化输入几何体与体积 U 型连接，无需在点云空间中采样。
-在最近提出的网络中，PMP-Net 从观察到最近的遮挡区域逐渐重建整个对象。
-PoinTr
-还专注于仅预测被遮挡的几何形状，它是通过将部分扫描代理转换为一组被遮挡代理以进一步细化重建来针对点云补全的前几个
-transformer 方法之一。</p>
-</blockquote></li>
-<li><p>论文中提到的点云特征提取的研究现状</p>
-<blockquote>
-<p>对象点云补全中的大量工作都依赖于 PointNet 提取的特征。 PointNet
-的主要优点是它能够通过最大池化实现排列不变。 然而，最大池化操作忽略了 3D
-空间中的局部特征。这促使 SoftPoolNet
-通过基于激活对特征向量进行排序而不是为每个元素取最大值来解决这个问题。实际上，他们能够连接特征以形成二维矩阵，以便可以应用
-2D-CNN 。 除了通过池化操作构建特征表示之外，PointNet++ 对具有最远点采样
-(FPS) 的点的局部子集进行采样，然后将其馈送到 PointNet。 基于 PointNet++
-的特征提取方法，SA-Net 提出将不同分辨率的特征与 KNN
-分组以进行进一步处理，而 PMP-Net 使用 PointNet++
-特征来识别应该重建对象的方向。 PoinTr
-还通过将输入点的位置编码添加到转换器中来解决置换不变问题而无需池化。</p>
-</blockquote></li>
-<li><p>总结</p>
-<ol type="1">
-<li>在当前的学术界，大多数基于深度学习的点云补全网络都是基于编码器-解码器架构</li>
-<li>大多数点云补全网络基于 PointNet 或 PointNet++
-提取的特征进行补全</li>
-<li>VRCNet 被多次提及，应提高阅读优先级，改为下一篇阅读的论文</li>
-</ol></li>
-</ul>
-<h3 id="operators">Operators</h3>
-<blockquote>
-<p>编码器将输入的点云迭代下采样为其潜在特征。然后，解码器对潜伏特征进行迭代上采样以重建物体或场景。</p>
-</blockquote>
-<h4 id="down-sampling-operation">Down-sampling operation</h4>
-<ul>
-<li><p>Feature Extraction</p>
-<p>首先定义输入点集为 $ _{in} $</p>
-<p>给予可训练的向量集 $ $ 和针对每个输入点的权重集 $ $ ，其中向量集 $ $
-的个数为 $ s $ 个， $ s $ 为超参数</p>
-<p>将输入点集中任一点 $ f $ 移动 $ _i $ ，得到新的一个点 $ f + _i $</p>
-<p>在输入点集中寻找距离 $ f + _i $ 最近的点 $ $</p>
-<p>计算点 $ f + _i $ 与点 $ $ 的距离并记为 $ d(f, _i) $</p>
-<p>对于向量集 $ $ 中的每一个向量均有一个对应的权重 $ $
-（并没有体积这些权重是否可以训练，不过根据推测，应该是可训练的）</p>
-<p>然后将点 $ f $ 的 $ s $ 个 $ d(f, _i) $
-利用如下函数聚合起来，得到一个标量</p>
-<p><span class="math display">\[ g(f) = \sum^{s}_{i=0} \sigma_i
-\tanh{\frac{\alpha}{d(f,\delta_i)+ \beta}} \]</span></p>
-<p>其中的 $ $ 和 $ $
-是固定的常数，根据推测应该不是可训练的，是经验值，是超参数</p>
-<p>最终，对于输入点集中的每一个点，若想输出 $ D_{out} $ 维特征，则需要有
-$ D_{out} $ 组向量集 $ $</p>
-<p>最终得到整个输入点集的特征</p>
-<p><span class="math display">\[ \mathcal{F}_{out} = \left\{ [g_b(f_a) +
-h(f_a)]^{D_{out}}_{b=1} \right\} ^{|\mathcal{F}_{in}|}_{a=1}
-\]</span></p>
-<p>其中， $ |_{in}| $ 是输入点集的点数</p>
-<p>该方法受 ICP 算法的启发</p>
-<p>将 ICP 算法 和 FPS 算法作为阅读完该论文的下一个学习目标</p>
-<p>理解是否存在偏差，需要结合作者的代码印证</p></li>
-<li><p>Neighbor pooling</p>
-<p>该操作是将上一步计算的每个点激活后的 $ g(f) $
-聚合起来，再进行激活</p>
-<p>目的是去除那些平均 $ g(f) $ 较大的点，使得点数减少至输入点数的 $
-$</p></li>
-</ul>
-<h4 id="up-sampling-operation">Up-sampling operation</h4>
-<p>当下采样进行到最后会得到仅剩一个点的特征</p>
-<p>上采样的操作实际上是将 $ N_{up} $ 个 $ _{out} $ 的集合</p>
-<h3 id="encoder-decoder-architectures">Encoder-decoder
-architectures</h3>
-<p>论文提出了两种架构，一种架构是基于编码器-解码器，另一种架构是基于
-PoinTr 派生的 Transformer</p>
-<p>邻域池化相比最远点采样（ FPS
-），其得到的结果更能勾勒出输入点云的轮廓</p>
-<h4 id="direct-application">Direct application</h4>
-<p>基于编码器-解码器的架构中</p>
-<p>编码器部分实际上就是下采样操作，即特征提取和邻域池化</p>
-<p>解码器部分实际上就是上采样操作</p>
-<h4 id="transformers">Transformers</h4>
-<p>基于 PoinTr 派生的 Transformer 的架构中</p>
-<p>利用特征提取和邻域池化替换了编码器之前的下采样操作，该部分被称为
-Points-to-Tokens</p>
-<p>利用特征提取和上采样替换了译码器之后的上采样操作，该部分被称为
-Coarse-to-Fine</p>
-<h3 id="总结">总结</h3>
-<p>论文主要的创新点是提出新的下采样和上采样方法</p>
-<p>了解到了当前点云补全网络的主流架构和常见的组件和算法</p>
-<h2 id="variational-relational-point-completion-network11">Variational
-Relational Point Completion Network<a href="#fn12" class="footnote-ref" id="fnref12" role="doc-noteref"><sup>12</sup></a></h2>
-<p>论文提出了一种由两个连续的编码器-解码器子网络组成的点云补全网络模型，两个自网络分别用于“概率建模”（PMNet）和“关系增强”（RENet）。</p>
-<p>第一个子网络 PMNet
-采用双流网络结构，从不完整的点云中嵌入全局特征和潜在分布，并预测用作 3D
-自适应锚点的整体骨架。</p>
-<p>第二个子网络 RENet
-努力通过学习多尺度局部点特征来增强结构关系。论文提出了点自注意内核（PSA）和点选择内核模块（PSK），以利用关系点特征，在粗略完成的条件下细化局部形状细节。</p>
-<p>论文还创建了一个大型多视图的局部点云数据集，其中包含超过 100,000
-个高质量扫描局部和完整点云。对于从 ShapeNet 中选择的每个完整 3D CAD
-模型，我们从单位球体上均匀分布的摄像机视图中随机渲染 26
-个部分点云，从而提高了数据多样性。该数据集可以作为实验的测试数据集。</p>
-<h3 id="pmnet-网络">PMNet 网络</h3>
-<p>PMNet
-网络的两条路径输入分别为完整点云和不完整点云。输入为完整点云的路径被称为建设路径（construction
-path），输入为不完整点云的路径被称为补全路径（completion）。两条路径具有相似的结构，除了分布推理层之外，都共享其编码器和解码器的权重。</p>
-<p>存在的问题：该子网络需要完整点云作为输入进行训练，以带动不完整点云的重建训练，但是在植株点云采样时，基于不对植株进行破坏性采样的原则，很难得到完整的被遮挡叶片的点云</p>
-<h3 id="renet-网络">RENet 网络</h3>
-<p>点自注意内核（PSA）能够自适应地聚合局部相邻点特征与相邻点中的学习关系。</p>
-<p>点选择内核模块（PSK）能够通过利用选择性内核单元来自适应地调整它们的感受野大小。</p>
-<h3 id="总结-1">总结</h3>
-<p>该模型主要使用了被遮挡的点云目标的完整点云进行训练，但是在实际工作中，被遮挡点云目标的完整点云可能比较难采集到</p>
-<p>因此点云补全新模型的应尽量不依赖完整点云的输入，仅用单次扫描的所有结果作为输入</p>
-<h2 id="morphing-and-sampling-network-for-dense-point-cloud-completion12">Morphing
-and sampling network for dense point cloud completion<a href="#fn13" class="footnote-ref" id="fnref13" role="doc-noteref"><sup>13</sup></a></h2>
-<p>论文提出了一种分两个阶段完成部分点云的新方法。具体来说，在第一阶段，该方法预测一个完整但粗粒度的点云，其中包含一组参数化表面元素。然后，在第二阶段，它通过一种新颖的采样算法将粗粒度预测与输入点云合并。</p>
-<h3 id="morphing-based-prediction">Morphing-Based Prediction</h3>
-<p>在粗补全的过程中，编码器借鉴了 PointNet
-网络结构，然后将提取的特征输入到基于变形的解码器中，以预测连续和平滑的形状。</p>
-<p>即使用多个点构成复杂平面，然后再平均采样生成平面上的点。</p>
-<h3 id="merging-and-refining">Merging and Refining</h3>
-<p>在细补全过程中，利用完整的点云进行残差计算，提高补全的准确率。</p>
-<h2 id="grnet-gridding-residual-network-for-dense-point-cloud-completion13">GRNet:
-Gridding Residual Network for Dense Point Cloud Completion<a href="#fn14" class="footnote-ref" id="fnref14" role="doc-noteref"><sup>14</sup></a></h2>
-<p>论文设计了两个新颖的可微分层，名为 Gridding 和 Gridding
-Reverse，以在点云和体素之间转换而不会丢失结构信息。</p>
-<p>论文还提出了可区分的立方特征采样层来提取相邻点的特征，从而保留了上下文信息。</p>
-<p>此外，论文设计了一种新的损失函数，即 Gridding
-Loss，用于计算预测点云和 ground truth 点云的 3D 网格之间的 L1
-距离，这有助于恢复细节。</p>
-<h3 id="gridding">Gridding</h3>
-<p>在 Gridding
-中，对于点云的每个点，该点所在的体素的八个顶点首先使用插值函数进行加权，该插值函数显式测量点云的几何关系。</p>
-<p>然后，采用具有跳跃连接的 3D 卷积神经网络 (3D CNN)
-来学习上下文感知和空间感知的特征，从而使网络能够补全不完整点云的缺失部分。</p>
-<h3 id="gridding-reverse">Gridding Reverse</h3>
-<p>在 Gridding Reverse 中，通过将每个体素替换为一个新点，将输出的 3D
-网格转换为粗点云，该新点的坐标是体素的八个顶点的加权和。</p>
-<p>下面的 Cubic Feature Sampling
-通过连接点所在的体素的相应八个顶点的特征来为粗点云中的每个点提取特征。</p>
-<p>粗点云和特征被转发到 MLP 以获得最终补全的点云。</p>
-<h2 id="pointr-diverse-point-cloud-completion-with-geometry-aware-transformers14"><a href="https://openaccess.thecvf.com/content/ICCV2021/html/Yu_PoinTr_Diverse_Point_Cloud_Completion_With_Geometry-Aware_Transformers_ICCV_2021_paper.html">PoinTr:
-Diverse Point Cloud Completion with Geometry-Aware Transformers</a><a href="#fn15" class="footnote-ref" id="fnref15" role="doc-noteref"><sup>15</sup></a></h2>
-<p>这篇论文主要讨论无监督的点云补全任务</p>
-<h3 id="创新点">创新点</h3>
-<ol type="1">
-<li>论文提出了一种新的点云转换方法（与 PointNet 的 T-Net
-不同），将点云表示为一组具有位置嵌入的无序点组</li>
-<li>论文提出了一个几何感知块，它可以显式地模拟局部几何关系</li>
-<li>论文提出了基于编码器解码器架构的 PoinTr 模型</li>
-</ol>
-<h3 id="point-proxies">Point Proxies</h3>
-<p>点代理其实是先对点云进行下采样得到中心点云集，然后利用具有分层下采样的轻量级
-DGCNN
-从输入点云中提取中心点云集的特征，然后将中心点云集的特征和位置信息结合起来</p>
-<h3 id="geometry-aware-transformer-block">Geometry-aware Transformer
-Block</h3>
-<p>几何感知块使用 knn 模型来捕获点云中的几何关系。</p>
-<p>给定查询坐标 <span class="math inline">\(p_Q\)</span>
-，我们根据键坐标 <span class="math inline">\(p_k\)</span>
-查询最近键的特征。</p>
-<h2 id="pcn-point-completion-network15"><a href="https://ieeexplore.ieee.org/abstract/document/8491026/">PCN: Point
-Completion Network</a><a href="#fn16" class="footnote-ref" id="fnref16" role="doc-noteref"><sup>16</sup></a></h2>
-<p>这是点云补全的第一篇工作，在此之前的3D形状不全都是以voxel的形式，而点云作为常见3D初始数据，直接在点云上做形状补全具有更大意义。</p>
-<p>PCN 的基本架构也是编码器-解码器架构</p>
-<h3 id="enocder">enocder</h3>
-<p>编码器采用了两层叠加的 PointNet，第二层 PointNet 的 Input 是 Point
-Feature 和 Global Feature 的拼接</p>
-<h3 id="decoder">decoder</h3>
-<p>解码器部分则分为粗生成和折叠补充两个部分，粗生成就是直接经过一个
-MLP，折叠补充则是在粗生成的每个点上都用多个点构成立方体替代，然后再经过
-MLP 将形状进行转换</p>
-<h3 id="kpi">KPI</h3>
-<h4 id="chamfer-distance">Chamfer Distance</h4>
-<p><span class="math display">\[CD(S_1, S_2) = \frac{1}{\lvert S_1
-\rvert} \sum_{x \in S_1}{\min_{y \in S_2} \lVert x-y \rVert _2} +
-\frac{1}{\lvert S_2 \rvert} \sum_{y \in S_2}{\min_{x \in S_1} \lVert y-x
-\rVert _2}\]</span></p>
-<p>倒角距离主要是计算两个点云之间各点的平均最短距离</p>
-<p>计算公式的前半部分是为了让输出点云更加靠近 G.T</p>
-<p>计算公式的后半部分是为了让输出点云尽可能覆盖 G.T</p>
-<h4 id="earth-movers-distance">Earth Mover’s Distance</h4>
-<p><span class="math display">\[EMD(S_1, S_2) =  \min_{\phi:S_1
-\rightarrow S_2} \frac{1}{\lvert S_1 \rvert} \sum_{x \in S_1}{\lVert x -
-\phi(x) \rVert_2}\]</span></p>
-<p>推土机距离则是找到一组映射关系，然后计算对应点之间的最小平均距离</p>
-<h3 id="loss-函数">Loss 函数</h3>
-<p><span class="math display">\[ L(Y_{coarse}, Y_{detail}, T_{gt}) =
-d_1(Y_{coarse}, T_{gt}) + \alpha d_2(Y_{detail}, T_{gt})\]</span></p>
-<p>Loss 函数的第一部分是粗生成的点云与下采样的 G.T 的 CD 和 EMD</p>
-<p>Loss 函数的第二部分是最终补全点云与 G.T 的 CD</p>
-<p><span class="math inline">\(\alpha\)</span> 是超参数</p>
-<h2 id="unpaired-point-cloud-completion-on-real-scans-using-adversarial-training16"><a href="https://arxiv.org/abs/1904.00069">UNPAIRED POINT CLOUD COMPLETION
-ON REAL SCANS USING ADVERSARIAL TRAINING</a><a href="#fn17" class="footnote-ref" id="fnref17" role="doc-noteref"><sup>17</sup></a></h2>
-<p>这篇文章首次讨论无监督的点云补全任务，很大程度上借鉴了首个点云的对抗生成网络。</p>
-<p>论文提出了一种不成对的基于点云的补全方法，无需缺失点云和完整点云之间的显式对应即可进行训练。</p>
-<p>在没有 G.T 的情况下，使用 plausibility scores 进行比较。</p>
-<p>论文将给定噪声和缺失点云作为模型的输入</p>
-<p>由于生成器借鉴了 GAN
-网络，可以从噪声生成与缺失点云完全不像的完整点云，为了加以约束，还在
-Loss 中添加重建损失项</p>
-<section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
-<hr>
-<ol>
-<li id="fn1"><p>Chaoda Zheng, Xu Yan, Haiming Zhang, Baoyuan Wang,
-Shenghui Cheng, Shuguang Cui, and Zhen Li. 2022. Beyond 3D Siamese
-Tracking: A Motion-Centric Paradigm for 3D Single Object Tracking in
-Point Clouds. In 2022 IEEE/CVF Conference on Computer Vision and Pattern
-Recognition (CVPR), IEEE, New Orleans, LA, USA, 8101–8110. DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00794" class="uri">https://doi.org/10.1109/CVPR52688.2022.00794</a><a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2"><p>Junzhe Zhang, Daxuan Ren, Zhongang Cai, Chai Kiat Yeo,
-Bo Dai, and Chen Change Loy. 2022. Monocular 3D Object Reconstruction
-with&nbsp;GAN Inversion. In Computer Vision – ECCV 2022 (Lecture Notes in
-Computer Science), Springer Nature Switzerland, Cham, 673–689. DOI:<a href="https://doi.org/10.1007/978-3-031-19769-7_39" class="uri">https://doi.org/10.1007/978-3-031-19769-7_39</a><a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn3"><p>Yu-Ting Yen, Chia-Ni Lu, Wei-Chen Chiu, and Yi-Hsuan
-Tsai. 2022. 3D-PL: Domain Adaptive Depth Estimation with&nbsp;3D-Aware
-Pseudo-Labeling. In Computer Vision – ECCV 2022 (Lecture Notes in
-Computer Science), Springer Nature Switzerland, Cham, 710–728. DOI:<a href="https://doi.org/10.1007/978-3-031-19812-0_41" class="uri">https://doi.org/10.1007/978-3-031-19812-0_41</a><a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn4"><p>Zhiqiang Yan, Kun Wang, Xiang Li, Zhenyu Zhang, Jun Li,
-and Jian Yang. 2022. RigNet: Repetitive Image Guided Network for&nbsp;Depth
-Completion. In Computer Vision – ECCV 2022 (Lecture Notes in Computer
-Science), Springer Nature Switzerland, Cham, 214–230. DOI:<a href="https://doi.org/10.1007/978-3-031-19812-0_13" class="uri">https://doi.org/10.1007/978-3-031-19812-0_13</a><a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn5"><p>Zhiqiang Yan, Xiang Li, Kun Wang, Zhenyu Zhang, Jun Li,
-and Jian Yang. 2022. Multi-modal Masked Pre-training for&nbsp;Monocular
-Panoramic Depth Completion. In Computer Vision – ECCV 2022 (Lecture
-Notes in Computer Science), Springer Nature Switzerland, Cham, 378–395.
-DOI:<a href="https://doi.org/10.1007/978-3-031-19769-7_22" class="uri">https://doi.org/10.1007/978-3-031-19769-7_22</a><a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn6"><p>Xingguang Yan, Liqiang Lin, Niloy J. Mitra, Dani
-Lischinski, Daniel Cohen-Or, and Hui Huang. 2022. ShapeFormer:
-Transformer-based Shape Completion via Sparse Representation. In 2022
-IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
-IEEE, New Orleans, LA, USA, 6229–6239. DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00614" class="uri">https://doi.org/10.1109/CVPR52688.2022.00614</a><a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn7"><p>Ryuki Yamamoto, Hidekata Hontani, Akira Imakura, and
-Tatsuya Yokota. 2022. Fast Algorithm for Low-rank Tensor Completion in
-Delay-embedded Space. In 2022 IEEE/CVF Conference on Computer Vision and
-Pattern Recognition (CVPR), IEEE, New Orleans, LA, USA, 2048–2056.
-DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00210" class="uri">https://doi.org/10.1109/CVPR52688.2022.00210</a><a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn8"><p>Xiaopei Wu, Liang Peng, Honghui Yang, Liang Xie, Chenxi
-Huang, Chengqi Deng, Haifeng Liu, and Deng Cai. 2022. Sparse Fuse Dense:
-Towards High Quality 3D Detection with Depth Completion. In 2022
-IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
-IEEE, New Orleans, LA, USA, 5408–5417. DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00534" class="uri">https://doi.org/10.1109/CVPR52688.2022.00534</a><a href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn9"><p>Xin Wen, Junsheng Zhou, Yu-Shen Liu, Hua Su, Zhen Dong,
-and Zhizhong Han. 2022. 3D Shape Reconstruction from 2D Images with
-Disentangled Attribute Flow. In 2022 IEEE/CVF Conference on Computer
-Vision and Pattern Recognition (CVPR), IEEE, New Orleans, LA, USA,
-3793–3803. DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00378" class="uri">https://doi.org/10.1109/CVPR52688.2022.00378</a><a href="#fnref9" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn10"><p>Liang Pan, Xinyi Chen, Zhongang Cai, Junzhe Zhang,
-Haiyu Zhao, Shuai Yi, and Ziwei Liu. 2021. Variational Relational Point
-Completion Network. In 2021 IEEE/CVF Conference on Computer Vision and
-Pattern Recognition (CVPR), IEEE, Nashville, TN, USA, 8520–8529. DOI:<a href="https://doi.org/10.1109/CVPR46437.2021.00842" class="uri">https://doi.org/10.1109/CVPR46437.2021.00842</a><a href="#fnref10" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn11"><p>Yida Wang, David Joseph Tan, Nassir Navab, and Federico
-Tombari. 2022. Learning Local Displacements for Point Cloud Completion.
-In 2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition
-(CVPR), IEEE, New Orleans, LA, USA, 1558–1567. DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00162" class="uri">https://doi.org/10.1109/CVPR52688.2022.00162</a><a href="#fnref11" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn12"><p>Liang Pan, Xinyi Chen, Zhongang Cai, Junzhe Zhang,
-Haiyu Zhao, Shuai Yi, and Ziwei Liu. 2021. Variational Relational Point
-Completion Network. In 2021 IEEE/CVF Conference on Computer Vision and
-Pattern Recognition (CVPR), IEEE, Nashville, TN, USA, 8520–8529. DOI:<a href="https://doi.org/10.1109/CVPR46437.2021.00842" class="uri">https://doi.org/10.1109/CVPR46437.2021.00842</a><a href="#fnref12" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn13"><p>Minghua Liu, Lu Sheng, Sheng Yang, Jing Shao, and
-Shi-Min Hu. 2020. Morphing and Sampling Network for Dense Point Cloud
-Completion. AAAI 34, 07 (April 2020), 11596–11603. DOI:<a href="https://doi.org/10.1609/aaai.v34i07.6827" class="uri">https://doi.org/10.1609/aaai.v34i07.6827</a><a href="#fnref13" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn14"><p>Haozhe Xie, Hongxun Yao, Shangchen Zhou, Jiageng Mao,
-Shengping Zhang, and Wenxiu Sun. 2020. GRNet: Gridding Residual Network
-for Dense Point Cloud Completion. In Computer Vision – ECCV 2020
-(Lecture Notes in Computer Science), Springer International Publishing,
-Cham, 365–381. DOI:<a href="https://doi.org/10.1007/978-3-030-58545-7_21" class="uri">https://doi.org/10.1007/978-3-030-58545-7_21</a><a href="#fnref14" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn15"><p>Xumin Yu, Yongming Rao, Ziyi Wang, Zuyan Liu, Jiwen Lu,
-and Jie Zhou. 2021. PoinTr: Diverse Point Cloud Completion with
-Geometry-Aware Transformers. In 2021 IEEE/CVF International Conference
-on Computer Vision (ICCV), IEEE, Montreal, QC, Canada, 12478–12487.
-DOI:<a href="https://doi.org/10.1109/ICCV48922.2021.01227" class="uri">https://doi.org/10.1109/ICCV48922.2021.01227</a><a href="#fnref15" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn16"><p>Wentao Yuan, Tejas Khot, David Held, Christoph Mertz,
-and Martial Hebert. 2018. PCN: Point Completion Network. In 2018
-International Conference on 3D Vision (3DV), 728–737. DOI:<a href="https://doi.org/10.1109/3DV.2018.00088" class="uri">https://doi.org/10.1109/3DV.2018.00088</a><a href="#fnref16" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn17"><p>Xuelin Chen, Baoquan Chen, and Niloy J. Mitra. 2020.
-Unpaired Point Cloud Completion on Real Scans using Adversarial
-Training. DOI:<a href="https://doi.org/10.48550/arXiv.1904.00069" class="uri">https://doi.org/10.48550/arXiv.1904.00069</a><a href="#fnref17" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-</ol>
-</section>
-]]></content>
-      <categories>
-        <category>技术</category>
-        <category>学习</category>
-      </categories>
-      <tags>
-        <tag>论文</tag>
       </tags>
   </entry>
   <entry>
@@ -3436,6 +2929,513 @@ CODE FOR TORCHVISION.MODELS.RESNET</a></p>
         <tag>CNN</tag>
         <tag>Python</tag>
         <tag>PyTorch</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>WSL 安装总结</title>
+    <url>/posts/f1f0ebac.html</url>
+    <content><![CDATA[<p>考虑到虚拟机不能使用 GPU 加速，现在打算配置 WSL 在 Ubuntu
+上进行训练</p>
+<h2 id="环境要求">环境要求</h2>
+<p>Windows 10 版本 2004 及更高版本</p>
+<h2 id="wsl-安装步骤">WSL 安装步骤</h2>
+<ol type="1">
+<li><p>启用系统功能</p>
+<p>控制面板 =⇒ 程序 =⇒ 程序和功能 =⇒ 启用或关闭 windows
+功能，勾选下列选项</p>
+<ul>
+<li>Hyper-V</li>
+<li>适用于 Linux 的 Windows 子系统</li>
+<li>虚拟机平台</li>
+</ul>
+<p>然后重新启动计算机</p></li>
+<li><p>下载并安装<a href="https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi">适用于
+x64 计算机的 WSL2 Linux 内核更新包</a></p></li>
+<li><p>将 WSL 2 设置为默认版本</p>
+<p>打开 PowerShell ，输入如下指令</p>
+<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">wsl <span class="literal">--set-default-version</span> <span class="number">2</span></span><br></pre></td></tr></tbody></table></figure><p></p></li>
+<li><p>安装 Linux 分发</p>
+<p>在 PowerShell 中输入如下指令可以查看可获取的 Linux 分发版本</p>
+<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">wsl <span class="literal">--list</span> <span class="literal">--online</span></span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>推荐选择 Ubuntu-20.04.3 LTS</p>
+<p>输入如下指令安装 Linux 分发</p>
+<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">wsl <span class="literal">--install</span> <span class="literal">-d</span> &lt;Distribution Name&gt;</span><br></pre></td></tr></tbody></table></figure><p></p>
+<blockquote>
+<p>WSL --install 默认安装固定版本的 Ubuntu -d 参数可以选择任意其他 Linux
+分发版本 &lt;Distribution Name&gt; 替换为 Linux 分发版本的名称</p>
+</blockquote></li>
+<li><p>安装后设置用户账号和密码</p></li>
+</ol>
+<h3 id="wsl-安装参考网页">WSL 安装参考网页</h3>
+<p>Microsoft - <a href="https://docs.microsoft.com/zh-cn/windows/wsl/install-manual">旧版
+WSL 的手动安装步骤</a></p>
+<p>憨憨不敢_ - <a href="https://blog.csdn.net/weixin_45191709/article/details/125871102">2022
+window下安装ubuntu22.04（wsl升级 包含 podman &amp; docker ）</a></p>
+<h2 id="wsl-配置">WSL 配置</h2>
+<ol type="1">
+<li><p>WSL2 连接 Windows 防火墙</p>
+<ol type="1">
+<li><p>检查 WSL 与 Windows 连接</p>
+<p>在 PowerShell 中输入如下指令获取 Windows 本机 IP 和 WSL IP</p>
+<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">ipconfig</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>Windows 本机 IP 地址如下</p>
+<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">无线局域网适配器 WLAN:</span><br><span class="line"></span><br><span class="line">    IPv4 地址 . . . . . . . . . . . . :</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>WSL IP 地址如下</p>
+<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">以太网适配器 vEthernet (WSL):</span><br><span class="line"></span><br><span class="line">    IPv4 地址 . . . . . . . . . . . . :</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>分别在 PowerShell 和 WSL 中输入下列指令检查连接</p>
+<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line">ping &lt;IPv4 Address&gt;</span><br></pre></td></tr></tbody></table></figure><p></p>
+<blockquote>
+<p>Linux 系统中 Ping
+指令不会自行停止，需要使用<code>Ctrl + C</code>停止指令</p>
+</blockquote></li>
+<li><p>若不能 ping 通，则检查 Windows 防火墙：</p>
+<p>控制面板 =⇒ 系统和安全 =⇒ Windows Defender 防火墙 =⇒ 高级设置</p>
+<ul>
+<li>入站规则</li>
+<li>出站规则</li>
+</ul>
+<p>启用其中所有 WSL 规则</p></li>
+<li><p>若不存在该规则则需要自行创建：在 PowerShell
+中以管理员身份输入如下指令</p>
+<p></p><figure class="highlight powershell"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">New-NetFirewallRule</span> <span class="literal">-DisplayName</span> <span class="string">"WSL"</span> <span class="literal">-Direction</span> Inbound  <span class="literal">-InterfaceAlias</span> <span class="string">"vEthernet (WSL)"</span>  <span class="literal">-Action</span> Allow</span><br><span class="line"><span class="built_in">New-NetFirewallRule</span> <span class="literal">-DisplayName</span> <span class="string">"WSL"</span> <span class="literal">-Direction</span> Outbound  <span class="literal">-InterfaceAlias</span> <span class="string">"vEthernet (WSL)"</span>  <span class="literal">-Action</span> Allow</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+</ol></li>
+<li><p>配置 Ubuntu apt 源</p>
+<p>备份原 apt 源</p>
+<p></p><figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> <span class="built_in">mv</span> /etc/apt/sources.list /etc/apt/sources.list.bak</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>编辑 apt 源</p>
+<p></p><figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> vi /etc/apt/sources.list</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>添加国内源</p>
+<ul>
+<li><p>清华源</p>
+<figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt; main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt; main restricted universe multiverse</span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-updates main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-updates main restricted universe multiverse</span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-backports main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-backports main restricted universe multiverse</span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-security main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-security main restricted universe multiverse</span><br></pre></td></tr></tbody></table></figure></li>
+<li><p>中科大源</p>
+<figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line">deb https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt; main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt; main restricted universe multiverse</span><br><span class="line">deb https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-security main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-security main restricted universe multiverse</span><br><span class="line">deb https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-updates main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-updates main restricted universe multiverse</span><br><span class="line">deb https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-backports main restricted universe multiverse</span><br><span class="line">deb-src https://mirrors.ustc.edu.cn/ubuntu/ &lt;Ubuntu Distribution Name&gt;-backports main restricted universe multiverse</span><br></pre></td></tr></tbody></table></figure></li>
+</ul>
+<p>更新源</p>
+<p></p><figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt-get update</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>更新软件</p>
+<p></p><figure class="highlight sh"><table><tbody><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt-get upgrade</span><br></pre></td></tr></tbody></table></figure><p></p></li>
+</ol>
+<h3 id="wsl-ubuntu-配置问题">WSL / Ubuntu 配置问题</h3>
+<ol type="1">
+<li><p>Ubuntu 切换阿里云源后提示缺少公钥</p>
+<p>解决方法：</p>
+<p>sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys
+3B4FE6ACC0B21F32</p></li>
+</ol>
+<h3 id="wsl-ubuntu-配置参考网页">WSL / Ubuntu 配置参考网页</h3>
+<p>清华大学开源软件镜像站 - <a href="https://mirrors.tuna.tsinghua.edu.cn/help/ubuntu/">Ubuntu
+镜像使用帮助</a> 中国科技大学开源软件镜像站 - <a href="https://mirrors.ustc.edu.cn/help/ubuntu.html">Ubuntu
+源使用帮助</a> weixin_43858295 - <a href="https://blog.csdn.net/weixin_43858295/article/details/123959824">Ubuntu
+换阿里云源后更新提示： GPG error 缺少公钥解决方法</a></p>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>Linux</category>
+      </categories>
+      <tags>
+        <tag>WSL</tag>
+        <tag>Ubuntu</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>基于机器学习的相邻时序植物点云配准总结</title>
+    <url>/posts/5f7835f6.html</url>
+    <content><![CDATA[<h2 id="总结">总结</h2>
+<h3 id="代码部分">代码部分</h3>
+<h4 id="循环部分">循环部分</h4>
+<p>在循环时需要注意利用 <code>if</code> 判断跳过的部分</p>
+<p>例如通过某些特征值进行筛选，对特定的类别赋值时，不应忘记没有通过筛选的部分，要对这些部分也进行赋值，否则会导致赋值顺序与实际顺序无法对应</p>
+<h4 id="应用变换部分">应用变换部分</h4>
+<p>在将点云应用变换矩阵的时候应该注意，该函数是否会改变原点云，若会改变则需要深复制点云进行保护</p>
+<h3 id="策略部分">策略部分</h3>
+<h4 id="归一化部分">归一化部分</h4>
+<p>数据集的归一化具有必要性</p>
+<p>但是针对点云中坐标的归一化不能简单的使用最大最小值归一化，因为这可能会导致点云的压缩</p>
+<p>针对点云坐标的归一化应该使用均值方差归一化，即 <code>PointNet</code>
+和 <code>PointNet++</code> 所提出的归一化方式</p>
+<figure class="highlight py"><table><tbody><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">xyz = np.asarray(pcd.points)                    <span class="comment"># pcd 为 open3D 的 PointCloud 类型</span></span><br><span class="line">centroid = np.mean(xyz, axis=<span class="number">0</span>)                 <span class="comment"># 求取点云的中心</span></span><br><span class="line">xyz = xyz - centroid                            <span class="comment"># 将点云中心置于原点 (0, 0, 0)</span></span><br><span class="line">m = np.<span class="built_in">max</span>(np.sqrt(np.<span class="built_in">sum</span>(xyz**<span class="number">2</span>, axis=<span class="number">1</span>)))     <span class="comment"># 求取长轴的的长度</span></span><br><span class="line">xyz_norm = xyz / m                              <span class="comment"># 将点云进行缩放</span></span><br></pre></td></tr></tbody></table></figure>
+<h4 id="配准策略部分">配准策略部分</h4>
+<p>直接对整个点云进行配准可能会面临叶片增加或减少情况，导致配准效果不佳</p>
+<p>针对此情况，采取选取植株中最大的三片叶片，对这三片叶片进行计算特征后进行配准</p>
+<p>暂时使用的配准方法是使用 open3D 库提供的配准方法</p>
+<p>即 计算点云的 FPFH 特征，然后进行粗配准，再进行 ICP 精配准</p>
+<p>叶片生长过程中叶片位置、形态可能会发生较大变化</p>
+<p>导致相邻时序中选取的叶片并不对应，配准时陷入局部最优（叶片翻转或叶片垂直或叶片偏移）</p>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>学习</category>
+      </categories>
+      <tags>
+        <tag>点云</tag>
+        <tag>Python</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>点云补全论文阅读总结</title>
+    <url>/posts/781c276d.html</url>
+    <content><![CDATA[<h2 id="beyond-3d-siamese-tracking-a-motion-centric-paradigm-for-3d-single-object-tracking-in-point-clouds1">Beyond
+3D Siamese Tracking: A Motion-Centric Paradigm for 3D Single Object
+Tracking in Point Clouds<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></h2>
+<p>论文提出了一种针对 LiDAR 雷达获得的存在运动物体场景的目标跟踪方法</p>
+<p>论文并不是纯粹点云补全，而是针对运动中的物体（即在场景中发生刚性变换的物体）进行补全，略过</p>
+<h2 id="monocular-3d-object-reconstruction-with-gan-inversion2">Monocular 3D
+Object Reconstruction with GAN Inversion<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></h2>
+<p>论文提出了一种基于 GAN 网络的由图像生成具有相似纹理特征的 Mesh
+方法</p>
+<p>略过</p>
+<h2 id="d-pl-domain-adaptive-depth-estimation-with-3d-aware-pseudo-labeling3">3D-PL:
+Domain Adaptive Depth Estimation with 3D-aware Pseudo-Labeling<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></h2>
+<p>论文提出了一种利用二维图像和三维点云进行标注深度图像数据集的单目图像深度估计方法</p>
+<p>论文并不是关于点云补全，而是针对深度图进行补全，略过</p>
+<h2 id="rignet-repetitive-image-guided-network-for-depth-completion4">RigNet:
+Repetitive Image Guided Network for Depth Completion<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a></h2>
+<p>论文提出了一种基于多尺度的稀疏深度图补全方法</p>
+<p>论文并不是关于点云补全，而是针对深度图进行补全，略过</p>
+<h2 id="multi-modal-masked-pre-training-for-monocular-panoramic-depth-completion5">Multi-Modal
+Masked Pre-Training for Monocular Panoramic Depth Completion<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a></h2>
+<p>论文提出了一种使用随机 Mask 训练的单目 360°
+全景图片的稀疏深度图补全方法</p>
+<p>论文并不是纯粹点云补全，针对全景图片的点云进行补全，略过</p>
+<h2 id="shapeformer-transformer-based-shape-completion-via-sparse-representation6">ShapeFormer:
+Transformer-based Shape Completion via Sparse Representation<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a></h2>
+<p>论文提出了一种基于注意力机制和点云体素化表示编码器解码器 (VQDIF)
+的补全 / GAN 方法，输入为缺失的点云，转换成 DIF 表示后进行补全 /
+生成，最后再转换为 Mesh 输出</p>
+<ul>
+<li>深度隐函数 DIF</li>
+</ul>
+<blockquote>
+<p>与图像补全不同，在 3D
+形状补全中，输入也可能含有噪声，若是完整保留输入必然会产生嘈杂的结果</p>
+</blockquote>
+<p>潜在的研究方向，可以放着，但是并不是纯点云研究，优先级并不高</p>
+<h2 id="fast-algorithm-for-low-rank-tensor-completion-in-delay-embedded-space7">Fast
+Algorithm for Low-rank Tensor Completion in Delay-embedded Space<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a></h2>
+<p>论文提出了一种利用多路延迟嵌入变换实现张量 / 图像补全的方法</p>
+<p>论文并不是纯粹点云补全，略过</p>
+<h2 id="sparse-fuse-dense-towards-high-quality-3d-detection-with-depth-completion8">Sparse
+Fuse Dense: Towards High Quality 3D Detection with Depth Completion<a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a></h2>
+<p>论文提出了一种利用 LiDAR
+稀疏点云和二维彩色图像的多模态融合实现目标检测的方法，并没有涉及到补全部分</p>
+<p>论文并不是纯粹点云补全，而是尝试使用多模态进行补全，略过</p>
+<h2 id="d-shape-reconstruction-from-2d-images-with-disentangled-attribute-flow9">3D
+Shape Reconstruction from 2D Images with Disentangled Attribute Flow<a href="#fn9" class="footnote-ref" id="fnref9" role="doc-noteref"><sup>9</sup></a></h2>
+<p>论文提出了一种基于 Attribute Flow 模型实现从单张二维 RGB 图像重建为
+3D 点云的方法</p>
+<p>但在论文中也提到该方法可以用在点云补全，但是文中并没有详细说明如何修改网络，而是说参照
+VRCNet<a href="#fn10" class="footnote-ref" id="fnref10" role="doc-noteref"><sup>10</sup></a> 的设置，VRCNet
+在待阅读论文中，将详细查看具体方法</p>
+<p>暂留</p>
+<p>[ ] VRCNet 补充引用</p>
+<h2 id="learning-local-displacements-for-point-cloud-completion10">Learning
+Local Displacements for Point Cloud Completion<a href="#fn11" class="footnote-ref" id="fnref11" role="doc-noteref"><sup>11</sup></a></h2>
+<h3 id="introduction-conclusion">Introduction &amp; Conclusion</h3>
+<p>论文提出了以下内容</p>
+<ul>
+<li>基于编码器-解码器架构的对象点云补全和场景点云补全算法模型
+<ul>
+<li>针对局部点云的特征提取方法</li>
+<li>能够提取点云的特征的邻域池化算法</li>
+<li>创新的上采样方法</li>
+</ul></li>
+<li>结合上述处理方法并结合 Transformer 架构的算法模型</li>
+</ul>
+<h3 id="related-works">Related works</h3>
+<ul>
+<li><p>论文中提到的点云补全的研究现状</p>
+<blockquote>
+<p>FoldingNet 和 AtlasNet 是最早提出利用 PointNet
+提取的特征进行点云补全的两个网络，方法是将一个或多个二维网格变形为所需的形状。
+PCN 在上述两个模型的基础上提出使用更小的 2D
+网格进行变换以重建更精细的结构。 通过编码器-解码器架构，ASFM-Net 和
+VRCNet
+将编码的潜在特征与先验完成形状相匹配，从而产生良好的粗略完成结果。为了从部分扫描中保留观察到的几何形状以进行精细重建，MSN
+和 VRCNet 通过使用最小密度采样 (MDS) 或距观察表面的最远点采样 (FPS)
+绕过观察到的几何形状，并且建立跳过连接。通过嵌入体积子架构，GRNet
+保留离散化输入几何体与体积 U 型连接，无需在点云空间中采样。
+在最近提出的网络中，PMP-Net 从观察到最近的遮挡区域逐渐重建整个对象。
+PoinTr
+还专注于仅预测被遮挡的几何形状，它是通过将部分扫描代理转换为一组被遮挡代理以进一步细化重建来针对点云补全的前几个
+transformer 方法之一。</p>
+</blockquote></li>
+<li><p>论文中提到的点云特征提取的研究现状</p>
+<blockquote>
+<p>对象点云补全中的大量工作都依赖于 PointNet 提取的特征。 PointNet
+的主要优点是它能够通过最大池化实现排列不变。 然而，最大池化操作忽略了 3D
+空间中的局部特征。这促使 SoftPoolNet
+通过基于激活对特征向量进行排序而不是为每个元素取最大值来解决这个问题。实际上，他们能够连接特征以形成二维矩阵，以便可以应用
+2D-CNN 。 除了通过池化操作构建特征表示之外，PointNet++ 对具有最远点采样
+(FPS) 的点的局部子集进行采样，然后将其馈送到 PointNet。 基于 PointNet++
+的特征提取方法，SA-Net 提出将不同分辨率的特征与 KNN
+分组以进行进一步处理，而 PMP-Net 使用 PointNet++
+特征来识别应该重建对象的方向。 PoinTr
+还通过将输入点的位置编码添加到转换器中来解决置换不变问题而无需池化。</p>
+</blockquote></li>
+<li><p>总结</p>
+<ol type="1">
+<li>在当前的学术界，大多数基于深度学习的点云补全网络都是基于编码器-解码器架构</li>
+<li>大多数点云补全网络基于 PointNet 或 PointNet++
+提取的特征进行补全</li>
+<li>VRCNet 被多次提及，应提高阅读优先级，改为下一篇阅读的论文</li>
+</ol></li>
+</ul>
+<h3 id="operators">Operators</h3>
+<blockquote>
+<p>编码器将输入的点云迭代下采样为其潜在特征。然后，解码器对潜伏特征进行迭代上采样以重建物体或场景。</p>
+</blockquote>
+<h4 id="down-sampling-operation">Down-sampling operation</h4>
+<ul>
+<li><p>Feature Extraction</p>
+<p>首先定义输入点集为 $ _{in} $</p>
+<p>给予可训练的向量集 $ $ 和针对每个输入点的权重集 $ $ ，其中向量集 $ $
+的个数为 $ s $ 个， $ s $ 为超参数</p>
+<p>将输入点集中任一点 $ f $ 移动 $ _i $ ，得到新的一个点 $ f + _i $</p>
+<p>在输入点集中寻找距离 $ f + _i $ 最近的点 $ $</p>
+<p>计算点 $ f + _i $ 与点 $ $ 的距离并记为 $ d(f, _i) $</p>
+<p>对于向量集 $ $ 中的每一个向量均有一个对应的权重 $ $
+（并没有体积这些权重是否可以训练，不过根据推测，应该是可训练的）</p>
+<p>然后将点 $ f $ 的 $ s $ 个 $ d(f, _i) $
+利用如下函数聚合起来，得到一个标量</p>
+<p><span class="math display">\[ g(f) = \sum^{s}_{i=0} \sigma_i
+\tanh{\frac{\alpha}{d(f,\delta_i)+ \beta}} \]</span></p>
+<p>其中的 $ $ 和 $ $
+是固定的常数，根据推测应该不是可训练的，是经验值，是超参数</p>
+<p>最终，对于输入点集中的每一个点，若想输出 $ D_{out} $ 维特征，则需要有
+$ D_{out} $ 组向量集 $ $</p>
+<p>最终得到整个输入点集的特征</p>
+<p><span class="math display">\[ \mathcal{F}_{out} = \left\{ [g_b(f_a) +
+h(f_a)]^{D_{out}}_{b=1} \right\} ^{|\mathcal{F}_{in}|}_{a=1}
+\]</span></p>
+<p>其中， $ |_{in}| $ 是输入点集的点数</p>
+<p>该方法受 ICP 算法的启发</p>
+<p>将 ICP 算法 和 FPS 算法作为阅读完该论文的下一个学习目标</p>
+<p>理解是否存在偏差，需要结合作者的代码印证</p></li>
+<li><p>Neighbor pooling</p>
+<p>该操作是将上一步计算的每个点激活后的 $ g(f) $
+聚合起来，再进行激活</p>
+<p>目的是去除那些平均 $ g(f) $ 较大的点，使得点数减少至输入点数的 $
+$</p></li>
+</ul>
+<h4 id="up-sampling-operation">Up-sampling operation</h4>
+<p>当下采样进行到最后会得到仅剩一个点的特征</p>
+<p>上采样的操作实际上是将 $ N_{up} $ 个 $ _{out} $ 的集合</p>
+<h3 id="encoder-decoder-architectures">Encoder-decoder
+architectures</h3>
+<p>论文提出了两种架构，一种架构是基于编码器-解码器，另一种架构是基于
+PoinTr 派生的 Transformer</p>
+<p>邻域池化相比最远点采样（ FPS
+），其得到的结果更能勾勒出输入点云的轮廓</p>
+<h4 id="direct-application">Direct application</h4>
+<p>基于编码器-解码器的架构中</p>
+<p>编码器部分实际上就是下采样操作，即特征提取和邻域池化</p>
+<p>解码器部分实际上就是上采样操作</p>
+<h4 id="transformers">Transformers</h4>
+<p>基于 PoinTr 派生的 Transformer 的架构中</p>
+<p>利用特征提取和邻域池化替换了编码器之前的下采样操作，该部分被称为
+Points-to-Tokens</p>
+<p>利用特征提取和上采样替换了译码器之后的上采样操作，该部分被称为
+Coarse-to-Fine</p>
+<h3 id="总结">总结</h3>
+<p>论文主要的创新点是提出新的下采样和上采样方法</p>
+<p>了解到了当前点云补全网络的主流架构和常见的组件和算法</p>
+<h2 id="variational-relational-point-completion-network11">Variational
+Relational Point Completion Network<a href="#fn12" class="footnote-ref" id="fnref12" role="doc-noteref"><sup>12</sup></a></h2>
+<p>论文提出了一种由两个连续的编码器-解码器子网络组成的点云补全网络模型，两个自网络分别用于“概率建模”（PMNet）和“关系增强”（RENet）。</p>
+<p>第一个子网络 PMNet
+采用双流网络结构，从不完整的点云中嵌入全局特征和潜在分布，并预测用作 3D
+自适应锚点的整体骨架。</p>
+<p>第二个子网络 RENet
+努力通过学习多尺度局部点特征来增强结构关系。论文提出了点自注意内核（PSA）和点选择内核模块（PSK），以利用关系点特征，在粗略完成的条件下细化局部形状细节。</p>
+<p>论文还创建了一个大型多视图的局部点云数据集，其中包含超过 100,000
+个高质量扫描局部和完整点云。对于从 ShapeNet 中选择的每个完整 3D CAD
+模型，我们从单位球体上均匀分布的摄像机视图中随机渲染 26
+个部分点云，从而提高了数据多样性。该数据集可以作为实验的测试数据集。</p>
+<h3 id="pmnet-网络">PMNet 网络</h3>
+<p>PMNet
+网络的两条路径输入分别为完整点云和不完整点云。输入为完整点云的路径被称为建设路径（construction
+path），输入为不完整点云的路径被称为补全路径（completion）。两条路径具有相似的结构，除了分布推理层之外，都共享其编码器和解码器的权重。</p>
+<p>存在的问题：该子网络需要完整点云作为输入进行训练，以带动不完整点云的重建训练，但是在植株点云采样时，基于不对植株进行破坏性采样的原则，很难得到完整的被遮挡叶片的点云</p>
+<h3 id="renet-网络">RENet 网络</h3>
+<p>点自注意内核（PSA）能够自适应地聚合局部相邻点特征与相邻点中的学习关系。</p>
+<p>点选择内核模块（PSK）能够通过利用选择性内核单元来自适应地调整它们的感受野大小。</p>
+<h3 id="总结-1">总结</h3>
+<p>该模型主要使用了被遮挡的点云目标的完整点云进行训练，但是在实际工作中，被遮挡点云目标的完整点云可能比较难采集到</p>
+<p>因此点云补全新模型的应尽量不依赖完整点云的输入，仅用单次扫描的所有结果作为输入</p>
+<h2 id="morphing-and-sampling-network-for-dense-point-cloud-completion12">Morphing
+and sampling network for dense point cloud completion<a href="#fn13" class="footnote-ref" id="fnref13" role="doc-noteref"><sup>13</sup></a></h2>
+<p>论文提出了一种分两个阶段完成部分点云的新方法。具体来说，在第一阶段，该方法预测一个完整但粗粒度的点云，其中包含一组参数化表面元素。然后，在第二阶段，它通过一种新颖的采样算法将粗粒度预测与输入点云合并。</p>
+<h3 id="morphing-based-prediction">Morphing-Based Prediction</h3>
+<p>在粗补全的过程中，编码器借鉴了 PointNet
+网络结构，然后将提取的特征输入到基于变形的解码器中，以预测连续和平滑的形状。</p>
+<p>即使用多个点构成复杂平面，然后再平均采样生成平面上的点。</p>
+<h3 id="merging-and-refining">Merging and Refining</h3>
+<p>在细补全过程中，利用完整的点云进行残差计算，提高补全的准确率。</p>
+<h2 id="grnet-gridding-residual-network-for-dense-point-cloud-completion13">GRNet:
+Gridding Residual Network for Dense Point Cloud Completion<a href="#fn14" class="footnote-ref" id="fnref14" role="doc-noteref"><sup>14</sup></a></h2>
+<p>论文设计了两个新颖的可微分层，名为 Gridding 和 Gridding
+Reverse，以在点云和体素之间转换而不会丢失结构信息。</p>
+<p>论文还提出了可区分的立方特征采样层来提取相邻点的特征，从而保留了上下文信息。</p>
+<p>此外，论文设计了一种新的损失函数，即 Gridding
+Loss，用于计算预测点云和 ground truth 点云的 3D 网格之间的 L1
+距离，这有助于恢复细节。</p>
+<h3 id="gridding">Gridding</h3>
+<p>在 Gridding
+中，对于点云的每个点，该点所在的体素的八个顶点首先使用插值函数进行加权，该插值函数显式测量点云的几何关系。</p>
+<p>然后，采用具有跳跃连接的 3D 卷积神经网络 (3D CNN)
+来学习上下文感知和空间感知的特征，从而使网络能够补全不完整点云的缺失部分。</p>
+<h3 id="gridding-reverse">Gridding Reverse</h3>
+<p>在 Gridding Reverse 中，通过将每个体素替换为一个新点，将输出的 3D
+网格转换为粗点云，该新点的坐标是体素的八个顶点的加权和。</p>
+<p>下面的 Cubic Feature Sampling
+通过连接点所在的体素的相应八个顶点的特征来为粗点云中的每个点提取特征。</p>
+<p>粗点云和特征被转发到 MLP 以获得最终补全的点云。</p>
+<h2 id="pointr-diverse-point-cloud-completion-with-geometry-aware-transformers14"><a href="https://openaccess.thecvf.com/content/ICCV2021/html/Yu_PoinTr_Diverse_Point_Cloud_Completion_With_Geometry-Aware_Transformers_ICCV_2021_paper.html">PoinTr:
+Diverse Point Cloud Completion with Geometry-Aware Transformers</a><a href="#fn15" class="footnote-ref" id="fnref15" role="doc-noteref"><sup>15</sup></a></h2>
+<p>这篇论文主要讨论无监督的点云补全任务</p>
+<h3 id="创新点">创新点</h3>
+<ol type="1">
+<li>论文提出了一种新的点云转换方法（与 PointNet 的 T-Net
+不同），将点云表示为一组具有位置嵌入的无序点组</li>
+<li>论文提出了一个几何感知块，它可以显式地模拟局部几何关系</li>
+<li>论文提出了基于编码器解码器架构的 PoinTr 模型</li>
+</ol>
+<h3 id="point-proxies">Point Proxies</h3>
+<p>点代理其实是先对点云进行下采样得到中心点云集，然后利用具有分层下采样的轻量级
+DGCNN
+从输入点云中提取中心点云集的特征，然后将中心点云集的特征和位置信息结合起来</p>
+<h3 id="geometry-aware-transformer-block">Geometry-aware Transformer
+Block</h3>
+<p>几何感知块使用 knn 模型来捕获点云中的几何关系。</p>
+<p>给定查询坐标 <span class="math inline">\(p_Q\)</span>
+，我们根据键坐标 <span class="math inline">\(p_k\)</span>
+查询最近键的特征。</p>
+<h2 id="pcn-point-completion-network15"><a href="https://ieeexplore.ieee.org/abstract/document/8491026/">PCN: Point
+Completion Network</a><a href="#fn16" class="footnote-ref" id="fnref16" role="doc-noteref"><sup>16</sup></a></h2>
+<p>这是点云补全的第一篇工作，在此之前的3D形状不全都是以voxel的形式，而点云作为常见3D初始数据，直接在点云上做形状补全具有更大意义。</p>
+<p>PCN 的基本架构也是编码器-解码器架构</p>
+<h3 id="enocder">enocder</h3>
+<p>编码器采用了两层叠加的 PointNet，第二层 PointNet 的 Input 是 Point
+Feature 和 Global Feature 的拼接</p>
+<h3 id="decoder">decoder</h3>
+<p>解码器部分则分为粗生成和折叠补充两个部分，粗生成就是直接经过一个
+MLP，折叠补充则是在粗生成的每个点上都用多个点构成立方体替代，然后再经过
+MLP 将形状进行转换</p>
+<h3 id="kpi">KPI</h3>
+<h4 id="chamfer-distance">Chamfer Distance</h4>
+<p><span class="math display">\[CD(S_1, S_2) = \frac{1}{\lvert S_1
+\rvert} \sum_{x \in S_1}{\min_{y \in S_2} \lVert x-y \rVert _2} +
+\frac{1}{\lvert S_2 \rvert} \sum_{y \in S_2}{\min_{x \in S_1} \lVert y-x
+\rVert _2}\]</span></p>
+<p>倒角距离主要是计算两个点云之间各点的平均最短距离</p>
+<p>计算公式的前半部分是为了让输出点云更加靠近 G.T</p>
+<p>计算公式的后半部分是为了让输出点云尽可能覆盖 G.T</p>
+<h4 id="earth-movers-distance">Earth Mover’s Distance</h4>
+<p><span class="math display">\[EMD(S_1, S_2) =  \min_{\phi:S_1
+\rightarrow S_2} \frac{1}{\lvert S_1 \rvert} \sum_{x \in S_1}{\lVert x -
+\phi(x) \rVert_2}\]</span></p>
+<p>推土机距离则是找到一组映射关系，然后计算对应点之间的最小平均距离</p>
+<h3 id="loss-函数">Loss 函数</h3>
+<p><span class="math display">\[ L(Y_{coarse}, Y_{detail}, T_{gt}) =
+d_1(Y_{coarse}, T_{gt}) + \alpha d_2(Y_{detail}, T_{gt})\]</span></p>
+<p>Loss 函数的第一部分是粗生成的点云与下采样的 G.T 的 CD 和 EMD</p>
+<p>Loss 函数的第二部分是最终补全点云与 G.T 的 CD</p>
+<p><span class="math inline">\(\alpha\)</span> 是超参数</p>
+<h2 id="unpaired-point-cloud-completion-on-real-scans-using-adversarial-training16"><a href="https://arxiv.org/abs/1904.00069">UNPAIRED POINT CLOUD COMPLETION
+ON REAL SCANS USING ADVERSARIAL TRAINING</a><a href="#fn17" class="footnote-ref" id="fnref17" role="doc-noteref"><sup>17</sup></a></h2>
+<p>这篇文章首次讨论无监督的点云补全任务，很大程度上借鉴了首个点云的对抗生成网络。</p>
+<p>论文提出了一种不成对的基于点云的补全方法，无需缺失点云和完整点云之间的显式对应即可进行训练。</p>
+<p>在没有 G.T 的情况下，使用 plausibility scores 进行比较。</p>
+<p>论文将给定噪声和缺失点云作为模型的输入</p>
+<p>由于生成器借鉴了 GAN
+网络，可以从噪声生成与缺失点云完全不像的完整点云，为了加以约束，还在
+Loss 中添加重建损失项</p>
+<section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn1"><p>Chaoda Zheng, Xu Yan, Haiming Zhang, Baoyuan Wang,
+Shenghui Cheng, Shuguang Cui, and Zhen Li. 2022. Beyond 3D Siamese
+Tracking: A Motion-Centric Paradigm for 3D Single Object Tracking in
+Point Clouds. In 2022 IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR), IEEE, New Orleans, LA, USA, 8101–8110. DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00794" class="uri">https://doi.org/10.1109/CVPR52688.2022.00794</a><a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Junzhe Zhang, Daxuan Ren, Zhongang Cai, Chai Kiat Yeo,
+Bo Dai, and Chen Change Loy. 2022. Monocular 3D Object Reconstruction
+with&nbsp;GAN Inversion. In Computer Vision – ECCV 2022 (Lecture Notes in
+Computer Science), Springer Nature Switzerland, Cham, 673–689. DOI:<a href="https://doi.org/10.1007/978-3-031-19769-7_39" class="uri">https://doi.org/10.1007/978-3-031-19769-7_39</a><a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Yu-Ting Yen, Chia-Ni Lu, Wei-Chen Chiu, and Yi-Hsuan
+Tsai. 2022. 3D-PL: Domain Adaptive Depth Estimation with&nbsp;3D-Aware
+Pseudo-Labeling. In Computer Vision – ECCV 2022 (Lecture Notes in
+Computer Science), Springer Nature Switzerland, Cham, 710–728. DOI:<a href="https://doi.org/10.1007/978-3-031-19812-0_41" class="uri">https://doi.org/10.1007/978-3-031-19812-0_41</a><a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>Zhiqiang Yan, Kun Wang, Xiang Li, Zhenyu Zhang, Jun Li,
+and Jian Yang. 2022. RigNet: Repetitive Image Guided Network for&nbsp;Depth
+Completion. In Computer Vision – ECCV 2022 (Lecture Notes in Computer
+Science), Springer Nature Switzerland, Cham, 214–230. DOI:<a href="https://doi.org/10.1007/978-3-031-19812-0_13" class="uri">https://doi.org/10.1007/978-3-031-19812-0_13</a><a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>Zhiqiang Yan, Xiang Li, Kun Wang, Zhenyu Zhang, Jun Li,
+and Jian Yang. 2022. Multi-modal Masked Pre-training for&nbsp;Monocular
+Panoramic Depth Completion. In Computer Vision – ECCV 2022 (Lecture
+Notes in Computer Science), Springer Nature Switzerland, Cham, 378–395.
+DOI:<a href="https://doi.org/10.1007/978-3-031-19769-7_22" class="uri">https://doi.org/10.1007/978-3-031-19769-7_22</a><a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6"><p>Xingguang Yan, Liqiang Lin, Niloy J. Mitra, Dani
+Lischinski, Daniel Cohen-Or, and Hui Huang. 2022. ShapeFormer:
+Transformer-based Shape Completion via Sparse Representation. In 2022
+IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
+IEEE, New Orleans, LA, USA, 6229–6239. DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00614" class="uri">https://doi.org/10.1109/CVPR52688.2022.00614</a><a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7"><p>Ryuki Yamamoto, Hidekata Hontani, Akira Imakura, and
+Tatsuya Yokota. 2022. Fast Algorithm for Low-rank Tensor Completion in
+Delay-embedded Space. In 2022 IEEE/CVF Conference on Computer Vision and
+Pattern Recognition (CVPR), IEEE, New Orleans, LA, USA, 2048–2056.
+DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00210" class="uri">https://doi.org/10.1109/CVPR52688.2022.00210</a><a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn8"><p>Xiaopei Wu, Liang Peng, Honghui Yang, Liang Xie, Chenxi
+Huang, Chengqi Deng, Haifeng Liu, and Deng Cai. 2022. Sparse Fuse Dense:
+Towards High Quality 3D Detection with Depth Completion. In 2022
+IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
+IEEE, New Orleans, LA, USA, 5408–5417. DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00534" class="uri">https://doi.org/10.1109/CVPR52688.2022.00534</a><a href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn9"><p>Xin Wen, Junsheng Zhou, Yu-Shen Liu, Hua Su, Zhen Dong,
+and Zhizhong Han. 2022. 3D Shape Reconstruction from 2D Images with
+Disentangled Attribute Flow. In 2022 IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), IEEE, New Orleans, LA, USA,
+3793–3803. DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00378" class="uri">https://doi.org/10.1109/CVPR52688.2022.00378</a><a href="#fnref9" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn10"><p>Liang Pan, Xinyi Chen, Zhongang Cai, Junzhe Zhang,
+Haiyu Zhao, Shuai Yi, and Ziwei Liu. 2021. Variational Relational Point
+Completion Network. In 2021 IEEE/CVF Conference on Computer Vision and
+Pattern Recognition (CVPR), IEEE, Nashville, TN, USA, 8520–8529. DOI:<a href="https://doi.org/10.1109/CVPR46437.2021.00842" class="uri">https://doi.org/10.1109/CVPR46437.2021.00842</a><a href="#fnref10" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn11"><p>Yida Wang, David Joseph Tan, Nassir Navab, and Federico
+Tombari. 2022. Learning Local Displacements for Point Cloud Completion.
+In 2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), IEEE, New Orleans, LA, USA, 1558–1567. DOI:<a href="https://doi.org/10.1109/CVPR52688.2022.00162" class="uri">https://doi.org/10.1109/CVPR52688.2022.00162</a><a href="#fnref11" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn12"><p>Liang Pan, Xinyi Chen, Zhongang Cai, Junzhe Zhang,
+Haiyu Zhao, Shuai Yi, and Ziwei Liu. 2021. Variational Relational Point
+Completion Network. In 2021 IEEE/CVF Conference on Computer Vision and
+Pattern Recognition (CVPR), IEEE, Nashville, TN, USA, 8520–8529. DOI:<a href="https://doi.org/10.1109/CVPR46437.2021.00842" class="uri">https://doi.org/10.1109/CVPR46437.2021.00842</a><a href="#fnref12" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn13"><p>Minghua Liu, Lu Sheng, Sheng Yang, Jing Shao, and
+Shi-Min Hu. 2020. Morphing and Sampling Network for Dense Point Cloud
+Completion. AAAI 34, 07 (April 2020), 11596–11603. DOI:<a href="https://doi.org/10.1609/aaai.v34i07.6827" class="uri">https://doi.org/10.1609/aaai.v34i07.6827</a><a href="#fnref13" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn14"><p>Haozhe Xie, Hongxun Yao, Shangchen Zhou, Jiageng Mao,
+Shengping Zhang, and Wenxiu Sun. 2020. GRNet: Gridding Residual Network
+for Dense Point Cloud Completion. In Computer Vision – ECCV 2020
+(Lecture Notes in Computer Science), Springer International Publishing,
+Cham, 365–381. DOI:<a href="https://doi.org/10.1007/978-3-030-58545-7_21" class="uri">https://doi.org/10.1007/978-3-030-58545-7_21</a><a href="#fnref14" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn15"><p>Xumin Yu, Yongming Rao, Ziyi Wang, Zuyan Liu, Jiwen Lu,
+and Jie Zhou. 2021. PoinTr: Diverse Point Cloud Completion with
+Geometry-Aware Transformers. In 2021 IEEE/CVF International Conference
+on Computer Vision (ICCV), IEEE, Montreal, QC, Canada, 12478–12487.
+DOI:<a href="https://doi.org/10.1109/ICCV48922.2021.01227" class="uri">https://doi.org/10.1109/ICCV48922.2021.01227</a><a href="#fnref15" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn16"><p>Wentao Yuan, Tejas Khot, David Held, Christoph Mertz,
+and Martial Hebert. 2018. PCN: Point Completion Network. In 2018
+International Conference on 3D Vision (3DV), 728–737. DOI:<a href="https://doi.org/10.1109/3DV.2018.00088" class="uri">https://doi.org/10.1109/3DV.2018.00088</a><a href="#fnref16" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn17"><p>Xuelin Chen, Baoquan Chen, and Niloy J. Mitra. 2020.
+Unpaired Point Cloud Completion on Real Scans using Adversarial
+Training. DOI:<a href="https://doi.org/10.48550/arXiv.1904.00069" class="uri">https://doi.org/10.48550/arXiv.1904.00069</a><a href="#fnref17" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+]]></content>
+      <categories>
+        <category>技术</category>
+        <category>学习</category>
+      </categories>
+      <tags>
+        <tag>论文</tag>
       </tags>
   </entry>
 </search>
