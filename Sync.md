@@ -12,6 +12,7 @@ git clone -b hexo git@github.com:<your_username>/<your_username>.github.io
 npm install -g npm
 npm install
 npm install -g hexo-cli
+npm update
 hexo clean --all && hexo g && hexo d
 hexo new post <title>
 ```
