@@ -56,7 +56,7 @@
   </url>
   
   <url>
-    <loc>http://sptau.github.io/posts/cfb33f60.html</loc>
+    <loc>http://sptau.github.io/posts/f1f0ebac.html</loc>
     
     <lastmod>2025-02-10</lastmod>
     
@@ -74,7 +74,7 @@
   </url>
   
   <url>
-    <loc>http://sptau.github.io/posts/f1f0ebac.html</loc>
+    <loc>http://sptau.github.io/posts/cfb33f60.html</loc>
     
     <lastmod>2025-02-10</lastmod>
     
@@ -101,6 +101,15 @@
   </url>
   
   <url>
+    <loc>http://sptau.github.io/posts/4fd12987.html</loc>
+    
+    <lastmod>2025-02-10</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>http://sptau.github.io/posts/605ef827.html</loc>
     
     <lastmod>2025-02-10</lastmod>
@@ -119,7 +128,7 @@
   </url>
   
   <url>
-    <loc>http://sptau.github.io/posts/4fd12987.html</loc>
+    <loc>http://sptau.github.io/posts/2ed13e41.html</loc>
     
     <lastmod>2025-02-10</lastmod>
     
@@ -129,15 +138,6 @@
   
   <url>
     <loc>http://sptau.github.io/posts/49b59d4e.html</loc>
-    
-    <lastmod>2025-02-10</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>http://sptau.github.io/posts/2ed13e41.html</loc>
     
     <lastmod>2025-02-10</lastmod>
     
@@ -175,7 +175,7 @@
 
   <url>
     <loc>http://sptau.github.io/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -183,63 +183,63 @@
   
   <url>
     <loc>http://sptau.github.io/tags/CNN/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>http://sptau.github.io/tags/%E8%AE%BA%E6%96%87/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>http://sptau.github.io/tags/PointNet/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>http://sptau.github.io/tags/%E7%82%B9%E4%BA%91/</loc>
-    <lastmod>2025-08-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>http://sptau.github.io/tags/Python/</loc>
-    <lastmod>2025-08-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>http://sptau.github.io/tags/PyTorch/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>http://sptau.github.io/tags/PointNet/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>http://sptau.github.io/tags/Python/</loc>
+    <lastmod>2025-08-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>http://sptau.github.io/tags/PyTorch/</loc>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>http://sptau.github.io/tags/WSL/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>http://sptau.github.io/tags/Ubuntu/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
@@ -248,28 +248,28 @@
   
   <url>
     <loc>http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/</loc>
-    <lastmod>2025-08-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Python/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Python/</loc>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>http://sptau.github.io/categories/%E6%8A%80%E6%9C%AF/Linux/</loc>
-    <lastmod>2025-08-23</lastmod>
+    <lastmod>2025-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
