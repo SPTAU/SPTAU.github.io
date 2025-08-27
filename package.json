@@ -47,6 +47,6 @@
   "devDependencies": {
     "bootstrap": "^5.3.8",
     "images": "^3.2.4",
-    "sass": "^1.90.0"
+    "sass": "^1.91.0"
   }
 }
