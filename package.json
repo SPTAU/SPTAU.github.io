@@ -42,7 +42,7 @@
     "hexo-theme-next": "^8.27.0",
     "hexo-wordcount": "^6.0.1",
     "npm-check": "^6.0.1",
-    "npm-upgrade": "^3.2.0"
+    "npm-upgrade": "^3.3.0"
   },
   "devDependencies": {
     "bootstrap": "^5.3.8",
